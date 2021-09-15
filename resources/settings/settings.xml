@@ -1,0 +1,94 @@
+<settings>
+
+    <setting propertyKey="@Properties.Theme" title="@Strings.ThemeTitle">
+        <settingConfig type="list">
+            <listEntry value="0">@Strings.Dark</listEntry>
+            <listEntry value="1">@Strings.Light</listEntry>
+        </settingConfig>
+    </setting>
+
+    <setting propertyKey="@Properties.HourBoldFont" title="@Strings.HourBoldFontTitle">
+        <settingConfig type="boolean" />
+    </setting>
+
+    <setting propertyKey="@Properties.MinuteBoldFont" title="@Strings.MinuteBoldFontTitle">
+        <settingConfig type="boolean" />
+    </setting>
+
+    <setting propertyKey="@Properties.SecondsDisplayMode" title="@Strings.SecondsDisplayTitle">
+		<settingConfig type="list">
+			<listEntry value="0">@Strings.Off</listEntry>
+			<listEntry value="1">@Strings.Always</listEntry>
+			<listEntry value="2">@Strings.SecondsDisplayAuto</listEntry>
+		</settingConfig>
+    </setting>
+
+	<setting propertyKey="@Properties.TopDataType" title="@Strings.TopDataTypeTitle">
+		<settingConfig type="list">
+			<listEntry value="0">@Strings.Off</listEntry>
+			<listEntry value="1">@Strings.Steps</listEntry>
+			<listEntry value="2">@Strings.ActiveMinutes</listEntry>
+			<listEntry value="3">@Strings.FloorsClimbed</listEntry>
+			<listEntry value="4">@Strings.Notifications</listEntry>
+			<listEntry value="5">@Strings.HeartRate</listEntry>
+			<listEntry value="6">@Strings.Battery</listEntry>
+			<listEntry value="7">@Strings.Date</listEntry>
+		</settingConfig>
+	</setting>
+
+	<setting propertyKey="@Properties.BottomLeftDataType" title="@Strings.BottomLeftDataTypeTitle">
+		<settingConfig type="list">
+			<listEntry value="0">@Strings.Off</listEntry>
+			<listEntry value="1">@Strings.Steps</listEntry>
+			<listEntry value="2">@Strings.ActiveMinutes</listEntry>
+			<listEntry value="3">@Strings.FloorsClimbed</listEntry>
+			<listEntry value="4">@Strings.Notifications</listEntry>
+			<listEntry value="5">@Strings.HeartRate</listEntry>
+			<listEntry value="6">@Strings.Battery</listEntry>
+		</settingConfig>
+	</setting>
+
+	<setting propertyKey="@Properties.BottomDataType" title="@Strings.BottomDataTypeTitle">
+		<settingConfig type="list">
+			<listEntry value="0">@Strings.Off</listEntry>
+			<listEntry value="1">@Strings.Steps</listEntry>
+			<listEntry value="2">@Strings.ActiveMinutes</listEntry>
+			<listEntry value="3">@Strings.FloorsClimbed</listEntry>
+			<listEntry value="4">@Strings.Notifications</listEntry>
+			<listEntry value="5">@Strings.HeartRate</listEntry>
+			<listEntry value="6">@Strings.Battery</listEntry>
+		</settingConfig>
+	</setting>
+
+	<setting propertyKey="@Properties.LeftGoalType" title="@Strings.LeftGoalMeterTitle">
+		<settingConfig type="list">
+			<listEntry value="0">@Strings.Steps</listEntry>
+			<listEntry value="1">@Strings.FloorsClimbed</listEntry>
+			<listEntry value="2">@Strings.ActiveMinutes</listEntry>
+			<listEntry value="-1">@Strings.Battery</listEntry>
+			<listEntry value="-2">@Strings.Off</listEntry>
+		</settingConfig>
+	</setting>
+
+	<setting propertyKey="@Properties.RightGoalType" title="@Strings.RightGoalMeterTitle">
+		<settingConfig type="list">
+			<listEntry value="0">@Strings.Steps</listEntry>
+			<listEntry value="1">@Strings.FloorsClimbed</listEntry>
+			<listEntry value="2">@Strings.ActiveMinutes</listEntry>
+			<listEntry value="-1">@Strings.Battery</listEntry>
+			<listEntry value="-2">@Strings.Off</listEntry>
+		</settingConfig>
+	</setting>
+
+	<setting propertyKey="@Properties.GoalMeterStyle" title="@Strings.GoalMeterStyleTitle">
+		<settingConfig type="list">
+			<listEntry value="0">@Strings.AllSegments</listEntry>
+			<listEntry value="1">@Strings.AllSegmentsMerged</listEntry>
+			<listEntry value="3">@Strings.FilledSegments</listEntry>
+			<listEntry value="4">@Strings.FilledSegmentsMerged</listEntry>
+			<listEntry value="2">@Strings.Hidden</listEntry>
+		</settingConfig>
+	</setting>
+
+
+</settings>

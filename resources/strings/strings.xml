@@ -1,0 +1,43 @@
+<strings>
+
+    <string id="AppName">RaVel</string>
+
+    <string id="ThemeTitle">Theme</string>
+    <string id="Dark">Dark</string>
+    <string id="Light">Light</string>
+   
+	<string id="HourBoldFontTitle">Hours have font bold</string>
+	<string id="MinuteBoldFontTitle">Minutes have bold font</string>
+
+    <string id="SecondsDisplayTitle">Seconds display</string>
+    
+    <string id="TopDataTypeTitle">Top data</string>
+    
+    <string id="BottomLeftDataTypeTitle">Bottom left data</string>
+    <string id="BottomDataTypeTitle">Bottom data</string>
+    
+    <string id="LeftGoalMeterTitle">Left meter</string>
+    <string id="RightGoalMeterTitle">Right meter</string>
+    <string id="GoalMeterStyleTitle">Meter style</string>
+    <string id="MeterDigitsStyleTitle">Meter digit style</string>
+
+	<string id="Always">Always</string>
+	<string id="SecondsDisplayAuto">Automatic (saves battery)</string>
+	
+	<string id="Steps">Steps</string>
+	<string id="FloorsClimbed">Floors Climbed</string>
+	<string id="ActiveMinutes">Active Minutes (Weekly)</string>
+	<string id="Off">Off</string>
+	<string id="Notifications">Notifications</string>
+	<string id="HeartRate">Heart rate</string>
+	<string id="Date">Date</string>
+
+	<string id="AllSegmentsMerged">All Segments (Merged)</string>
+	<string id="FilledSegmentsMerged">Filled Segments (Merged)</string>
+	<string id="AllSegments">All Segments</string>
+	<string id="FilledSegments">Filled Segments</string>
+	<string id="Hidden">Hidden</string>
+
+	<string id="Battery">Battery</string>
+
+</strings>

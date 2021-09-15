@@ -1,0 +1,24 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<projectDescription>
+	<name>RaVelFace</name>
+	<comment></comment>
+	<projects>
+	</projects>
+	<buildSpec>
+		<buildCommand>
+			<name>connectiq.builder</name>
+			<arguments>
+			</arguments>
+		</buildCommand>
+	</buildSpec>
+	<natures>
+		<nature>connectiq.projectNature</nature>
+	</natures>
+	<linkedResources>
+		<link>
+			<name>source/GoalMeter.mc</name>
+			<type>1</type>
+			<location>C:/Users/Radu/eclipse-workspace/RaVelFace/source/GoalMeter.mc</location>
+		</link>
+	</linkedResources>
+</projectDescription>
