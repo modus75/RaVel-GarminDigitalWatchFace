@@ -90,5 +90,11 @@
 		</settingConfig>
 	</setting>
 
+    <setting propertyKey="@Properties.ShowAlarmIcon" title="@Strings.ShowAlarmIconTitle">
+        <settingConfig type="boolean" />
+    </setting>
+    <setting propertyKey="@Properties.ShowNotificationIcon" title="@Strings.ShowNotificationIconTitle">
+        <settingConfig type="boolean" />
+    </setting>
 
 </settings>

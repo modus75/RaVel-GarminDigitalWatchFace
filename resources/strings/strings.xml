@@ -39,5 +39,8 @@
 	<string id="Hidden">Hidden</string>
 
 	<string id="Battery">Battery</string>
+	
+	<string id="ShowAlarmIconTitle">Show alarm icon</string>
+	<string id="ShowNotificationIconTitle">Show notification icon</string>
 
 </strings>

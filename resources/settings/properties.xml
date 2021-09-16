@@ -14,4 +14,7 @@
 	<property id="LeftGoalType" type="number">0</property>
 	<property id="RightGoalType" type="number">1</property>
 	<property id="GoalMeterStyle" type="number">0</property>
+	
+	<property id="ShowAlarmIcon" type="boolean">true</property>
+	<property id="ShowNotificationIcon" type="boolean">false</property>
 </properties>

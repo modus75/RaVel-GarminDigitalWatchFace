@@ -1,9 +1,9 @@
 import Toybox.Application;
 import Toybox.Activity;
-import Toybox.Graphics;
+using  Toybox.Graphics;
 import Toybox.Lang;
 import Toybox.System;
-import Toybox.WatchUi;
+using Toybox.WatchUi;
 using Toybox.Time.Gregorian;
 
 var gThemeColour;
@@ -29,6 +29,7 @@ enum /* DATA_TYPES */ {
 }
 
 
+
 class RaVelFaceView extends WatchUi.WatchFace {
 
 	private var mIsSleeping = false;
@@ -43,6 +44,9 @@ class RaVelFaceView extends WatchUi.WatchFace {
 	private var mIconsFont;
 	
 	private var mSecondsDisplayMode;
+	
+	private var mShowAlarmIcon;
+	private var mShowNotificationIcon;
 	
     function initialize() {
         WatchFace.initialize();
@@ -61,6 +65,7 @@ class RaVelFaceView extends WatchUi.WatchFace {
         mTime = View.findDrawableById("Time");
         
         self.onSettingsChanged();
+        
     }
 
     // Called when this View is brought to the foreground. Restore
@@ -175,6 +180,34 @@ class RaVelFaceView extends WatchUi.WatchFace {
         		y, 
         		font, values[:text], Graphics.TEXT_JUSTIFY_LEFT|Graphics.TEXT_JUSTIFY_VCENTER);
         }
+        
+        
+        
+        /* icons */
+        var icons = "";
+        if (mShowAlarmIcon) {
+        	if ( System.getDeviceSettings().alarmCount ) {
+				var tmp = icons + ":";
+				icons = tmp;
+        	}
+        }
+        if (mShowNotificationIcon) {
+        	if ( System.getDeviceSettings().notificationCount ) {
+				var tmp = icons + "5";
+				icons = tmp;
+        	}
+        }
+        
+        if ( icons.length() ) {
+				dc.setColor( gLowVisibilityColor, Graphics.COLOR_TRANSPARENT );
+				dc.drawText(
+					dc.getWidth()/2,
+					0,
+					mIconsFont,
+					icons,
+					Graphics.TEXT_JUSTIFY_CENTER);
+
+        }
 
     }
 
@@ -260,6 +293,8 @@ class RaVelFaceView extends WatchUi.WatchFace {
 		mBottomLeftDataType = Application.getApp().getProperty("BottomLeftDataType");
 		mBottomRightDataType = Application.getApp().getProperty("BottomDataType");
 		
+		mShowAlarmIcon = Application.getApp().getProperty("ShowAlarmIcon");
+		mShowNotificationIcon = Application.getApp().getProperty("ShowNotificationIcon"); 
 	}
 	
 	
