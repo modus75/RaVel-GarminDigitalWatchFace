@@ -7,11 +7,11 @@
         </settingConfig>
     </setting>
 
-    <setting propertyKey="@Properties.HourBoldFont" title="@Strings.HourBoldFontTitle">
+    <setting propertyKey="@Properties.HoursFontType" title="@Strings.HoursFontTypeTitle">
         <settingConfig type="boolean" />
     </setting>
 
-    <setting propertyKey="@Properties.MinuteBoldFont" title="@Strings.MinuteBoldFontTitle">
+    <setting propertyKey="@Properties.MinutesFontType" title="@Strings.MinutesFontTypeTitle">
         <settingConfig type="boolean" />
     </setting>
 

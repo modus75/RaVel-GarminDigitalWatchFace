@@ -6,8 +6,8 @@
     <string id="Dark">Dark</string>
     <string id="Light">Light</string>
    
-	<string id="HourBoldFontTitle">Hours have font bold</string>
-	<string id="MinuteBoldFontTitle">Minutes have bold font</string>
+	<string id="HoursFontTypeTitle">Hours have small font</string>
+	<string id="MinutesFontTypeTitle">Minutes have small font</string>
 
     <string id="SecondsDisplayTitle">Seconds display</string>
     

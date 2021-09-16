@@ -2,8 +2,8 @@
 
 	<property id="Theme" type="number">0</property>
 	
-	<property id="HourBoldFont" type="boolean">false</property>
-	<property id="MinuteBoldFont" type="boolean">true</property>
+	<property id="HoursFontType" type="boolean">true</property>
+	<property id="MinutesFontType" type="boolean">false</property>
     <property id="SecondsDisplayMode" type="number">1</property>
 
 	<property id="TopDataType" type="number">7</property>

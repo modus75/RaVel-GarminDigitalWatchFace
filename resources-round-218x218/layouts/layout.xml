@@ -4,27 +4,27 @@
    
 	<drawable id="LeftGoalMeter" class="GoalMeter">
 			<param name="side">:left</param>
-			<param name="stroke">8</param>
-			<param name="height">180</param>
+			<param name="stroke">6</param>
+			<param name="height">150</param>
 			<param name="separator">2</param>
 	</drawable>
 
 	<drawable id="RightGoalMeter" class="GoalMeter">
 			<param name="side">:right</param>
-			<param name="stroke">8</param>
-			<param name="height">180</param>
+			<param name="stroke">6</param>
+			<param name="height">150</param>
 			<param name="separator">2</param>
 	</drawable>
 
 	<drawable id="Time" class="ThickThinTime">
-		<param name="adjustY">-14</param>
-		<param name="secondsX">174</param>
-		<param name="secondsY">185</param>
-		<param name="secondsClipWidth">52</param>
-		<param name="secondsClipHeight">38</param>
+		<param name="adjustY">-12</param>
+		<param name="secondsX">156</param>
+		<param name="secondsY">156</param>
+		<param name="secondsClipWidth">37</param>
+		<param name="secondsClipHeight">31</param>
 
 		<param name="topFieldY">41</param>
-		<param name="leftFieldAdjustX">8</param>
+		<param name="leftFieldAdjustX">6</param>
 
 	</drawable>
 

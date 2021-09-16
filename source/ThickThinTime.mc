@@ -19,7 +19,14 @@ class ThickThinTime extends Ui.Drawable {
 	private var mSecondsClipRectWidth;
 	private var mSecondsClipRectHeight;
 
+	private var mTopFieldY = 40; // for layout of other fields
+	private var mLeftFieldAdjustX = 0; // for layout of other fields
+	
+	private var mHoursAdjustX;
+	private var mMinutesAdjustX;
+
 	private var mHideSeconds = false;
+	
 	private var AM_PM_X_OFFSET = 2;
 
 	// #10 Adjust position of seconds to compensate for hidden hours leading zero.
@@ -42,6 +49,13 @@ class ThickThinTime extends Ui.Drawable {
 		mSecondsClipRectWidth = params[:secondsClipWidth];
 		mSecondsClipRectHeight = params[:secondsClipHeight];
 
+		if ( params[:topFieldY] != null) {
+			mTopFieldY = params[:topFieldY];
+		}
+		if ( params[:leftFieldAdjustX] != null) {
+			mLeftFieldAdjustX = params[:leftFieldAdjustX];
+		}
+
 		onSettingsChanged();
 	}
 
@@ -59,6 +73,14 @@ class ThickThinTime extends Ui.Drawable {
 	function getSecondsY() {
 		return mSecondsY;
 	}
+
+	function getTopFieldY() {
+		return mTopFieldY;
+	}
+
+	function getLeftFieldAdjustX() {
+		return mLeftFieldAdjustX;
+	}
 	
 	function draw(dc) {
 		drawHoursMinutes(dc);
@@ -72,37 +94,30 @@ class ThickThinTime extends Ui.Drawable {
 
 		var hours = formattedTime[:hour];
 		var minutes = formattedTime[:min];
-		var amPmText = formattedTime[:amPm];
+		//var amPmText = formattedTime[:amPm];
 
 		var halfDCWidth = dc.getWidth() / 2;
 		var halfDCHeight = (dc.getHeight() / 2) + mAdjustY;
 
-		var hoursWidth = dc.getTextWidthInPixels(hours, mHoursFont);
-		var minutesWidth = dc.getTextWidthInPixels(minutes, mMinutesFont);
+		//var hoursWidth = dc.getTextWidthInPixels(hours, mHoursFont);
+		//var minutesWidth = dc.getTextWidthInPixels(minutes, mMinutesFont);
 		
-		var x = halfDCWidth - ( (hoursWidth+minutesWidth) / 2);
-		var xHours = x;
+		var x = halfDCWidth;
 		
-		if (hoursWidth + 4 <= minutesWidth) {
-			xHours -= 2;
-		}
-
 		// Draw hours.
 		dc.setColor(gHoursColour, Graphics.COLOR_TRANSPARENT);
 		dc.drawText(
-			xHours,
+			x + mHoursAdjustX,
 			halfDCHeight,
 			mHoursFont,
 			hours,
-			Graphics.TEXT_JUSTIFY_LEFT | Graphics.TEXT_JUSTIFY_VCENTER
+			Graphics.TEXT_JUSTIFY_RIGHT | Graphics.TEXT_JUSTIFY_VCENTER
 		);
-		
-		x += hoursWidth;
 
 		// Draw minutes.
 		dc.setColor(gMinutesColour, Graphics.COLOR_TRANSPARENT);
 		dc.drawText(
-			x,
+			x + mMinutesAdjustX,
 			halfDCHeight,
 			mMinutesFont,
 			minutes,
@@ -110,7 +125,7 @@ class ThickThinTime extends Ui.Drawable {
 		);
 
 		// If required, draw AM/PM after minutes, vertically centred.
-		if (amPmText.length() > 0) {
+/*		if (amPmText.length() > 0) {
 			dc.setColor(gThemeColour, Graphics.COLOR_TRANSPARENT);
 			x += dc.getTextWidthInPixels(minutes, mMinutesFont);
 			dc.drawText(
@@ -120,7 +135,7 @@ class ThickThinTime extends Ui.Drawable {
 				amPmText,
 				Graphics.TEXT_JUSTIFY_LEFT | Graphics.TEXT_JUSTIFY_VCENTER
 			);
-		}
+		}*/
 	}
 
 	// Called to draw seconds both as part of full draw(), but also onPartialUpdate() of watch face in low power mode.
@@ -146,8 +161,8 @@ class ThickThinTime extends Ui.Drawable {
 			// Can't optimise setting colour once, at start of low power mode, at this goes wrong on real hardware: alternates
 			// every second with inverse (e.g. blue text on black, then black text on blue).
 			dc.setColor(gThemeColour, 
-				Graphics.COLOR_RED
-				//gBackgroundColour
+				//Graphics.COLOR_RED
+				gBackgroundColour
 			);	
 
 			// Clear old rect (assume nothing overlaps seconds text).
@@ -171,17 +186,29 @@ class ThickThinTime extends Ui.Drawable {
 	}
 	
 	function onSettingsChanged() {
-		var hoursBold = getApp().getProperty("HourBoldFont") as bool;
-		mHoursFont = Ui.loadResource(hoursBold ? Rez.Fonts.TimeBoldFont : Rez.Fonts.TimeNormalFont);
+		var hoursFontType = getApp().getProperty("HoursFontType");
+		var minutesFontType = getApp().getProperty("MinutesFontType");
 		
-		var minutesBold = getApp().getProperty("MinuteBoldFont") as bool;
-		if (hoursBold == minutesBold) {
+		mHoursFont = Ui.loadResource(hoursFontType ? Rez.Fonts.TimeSmallFont : Rez.Fonts.TimeFont);
+		
+		if (hoursFontType == minutesFontType) {
 			mMinutesFont = mHoursFont;
 		}
 		else {
-			mMinutesFont = Ui.loadResource(minutesBold ? Rez.Fonts.TimeBoldFont : Rez.Fonts.TimeNormalFont);
+			mMinutesFont = Ui.loadResource(minutesFontType ? Rez.Fonts.TimeSmallFont : Rez.Fonts.TimeFont);
 		}
-		//mSecondsFont = Ui.loadResource(Rez.Fonts.SecondsFont);
+		
+		mHoursAdjustX = 0;
+		mMinutesAdjustX = 0;
+		
+		if (hoursFontType) {
+			mHoursAdjustX = -10;
+		}
+		
+		if (minutesFontType) {
+			mMinutesAdjustX = 10;
+		}
+		
 		mSecondsFont = Graphics.FONT_NUMBER_MEDIUM;
 	}
 }

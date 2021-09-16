@@ -93,7 +93,7 @@ class RaVelFaceView extends WatchUi.WatchFace {
 			
 			var font = Graphics.FONT_MEDIUM;
 			var x = dc.getWidth()/2;
-			var y = 42;
+			var y = mTime.getTopFieldY();
 			var textDims = dc.getTextDimensions(values[:text], font);
 			
         	if ( values[:icon] != null ) {
@@ -121,7 +121,7 @@ class RaVelFaceView extends WatchUi.WatchFace {
         if ( values[:isValid] ) {
         	var font = Graphics.FONT_NUMBER_MEDIUM;
         	
-        	var x = 5 + mTime.getSecondsX() / 2;
+        	var x = mTime.getLeftFieldAdjustX() + mTime.getSecondsX() / 2;
         	var y = mTime.getSecondsY();
         	var textDims = dc.getTextDimensions(values[:text], font);
         	
@@ -129,19 +129,20 @@ class RaVelFaceView extends WatchUi.WatchFace {
 	        	dc.setColor( ( (values[:iconColor]!=null) ? values[:iconColor] : gIconColor ), Graphics.COLOR_TRANSPARENT);
 	        	
 	        	var iconDims = dc.getTextDimensions(values[:icon], mIconsFont);
-
+				var asc = Graphics.getFontAscent(font);
+				var desc = Graphics.getFontDescent(font);
 				dc.drawText(
 					x - textDims[0]/2,
-					y - textDims[1]/2 + iconDims[1], /* icon higher so that it has more space*/
-					mIconsFont, values[:icon], Graphics.TEXT_JUSTIFY_RIGHT/*|Graphics.TEXT_JUSTIFY_VCENTER*/);
+					y - (textDims[1]*3)/10 + iconDims[1]/2, /* icon higher so that it has more space*/
+					mIconsFont, values[:icon], Graphics.TEXT_JUSTIFY_RIGHT|Graphics.TEXT_JUSTIFY_VCENTER);
         	}
 
         	dc.setColor( ( (values[:color]!=null) ? values[:color] : gThemeColour ), Graphics.COLOR_TRANSPARENT);
         	dc.drawText(
         		x, 
-        		y, 
+        		y,
         		font, values[:text], Graphics.TEXT_JUSTIFY_CENTER|Graphics.TEXT_JUSTIFY_VCENTER);
-        		
+
         }
 
 
@@ -154,7 +155,7 @@ class RaVelFaceView extends WatchUi.WatchFace {
         	var textDims = dc.getTextDimensions(values[:text], font);
 
         	var x = dc.getWidth()/2;
-        	var y = dc.getHeight() - textDims[1]/2 + 2;
+        	var y = dc.getHeight() - textDims[1]/2 + 1;
         	
         	if ( values[:icon] != null ) {
         	

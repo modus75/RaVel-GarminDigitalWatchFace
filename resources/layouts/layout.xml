@@ -17,11 +17,14 @@
 	</drawable>
 
 	<drawable id="Time" class="ThickThinTime">
-		<param name="adjustY">-10</param>
+		<param name="adjustY">-13</param>
 		<param name="secondsX">159</param>
-		<param name="secondsY">175</param>
+		<param name="secondsY">174</param>
 		<param name="secondsClipWidth">48</param>
 		<param name="secondsClipHeight">34</param>
+		
+		<param name="topFieldY">41</param>
+		<param name="leftFieldAdjustX">6</param>
 	</drawable>
 	
 </layout>

@@ -1,6 +1,6 @@
 <fonts>
-	<font id="TimeBoldFont" filename="ArialNarrow-114-Bold.fnt" antialias="true"/>
-	<font id="TimeNormalFont" filename="ArialNarrow-96-Bold.fnt" antialias="true"/>
+	<font id="TimeFont" filename="ArialNarrow-114-Bold.fnt" antialias="true"/>
+	<font id="TimeSmallFont" filename="ArialNarrow-96-Bold.fnt" antialias="true"/>
 	
 	<font id="IconsFont" filename="crystal-icons-small.fnt" antialias="true"/>
 </fonts>

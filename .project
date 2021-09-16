@@ -15,10 +15,5 @@
 		<nature>connectiq.projectNature</nature>
 	</natures>
 	<linkedResources>
-		<link>
-			<name>source/GoalMeter.mc</name>
-			<type>1</type>
-			<location>C:/Users/Radu/eclipse-workspace/RaVelFace/source/GoalMeter.mc</location>
-		</link>
 	</linkedResources>
 </projectDescription>

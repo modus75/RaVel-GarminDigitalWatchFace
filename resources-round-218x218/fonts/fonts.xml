@@ -1,0 +1,7 @@
+<fonts>
+
+	<font id="TimeFont" filename="../../resources/fonts/ArialNarrow-102-Bold.fnt" antialias="true"/>
+	<font id="TimeSmallFont" filename="../../resources/fonts/ArialNarrow-96-Bold.fnt" antialias="true"/>
+	
+	<font id="IconsFont" filename="../../resources/fonts/crystal-icons-small.fnt" antialias="true"/>
+</fonts>
