@@ -16,5 +16,6 @@
 	<property id="GoalMeterStyle" type="number">0</property>
 	
 	<property id="ShowAlarmIcon" type="boolean">true</property>
+	<property id="ShowDontDisturbIcon" type="boolean">true</property>
 	<property id="ShowNotificationIcon" type="boolean">false</property>
 </properties>

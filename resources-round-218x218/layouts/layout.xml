@@ -18,7 +18,7 @@
 
 	<drawable id="Time" class="ThickThinTime">
 		<param name="adjustY">-12</param>
-		<param name="secondsX">156</param>
+		<param name="secondsX">155</param>
 		<param name="secondsY">156</param>
 		<param name="secondsClipWidth">37</param>
 		<param name="secondsClipHeight">31</param>

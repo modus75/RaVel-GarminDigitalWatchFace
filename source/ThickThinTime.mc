@@ -60,6 +60,10 @@ class ThickThinTime extends Ui.Drawable {
 	}
 
 
+	function getHideSeconds() {
+		return mHideSeconds;
+	}
+	
 	function setHideSeconds(hideSeconds) {
 		var ret = mHideSeconds != hideSeconds;
 		mHideSeconds = hideSeconds;

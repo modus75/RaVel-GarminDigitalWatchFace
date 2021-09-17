@@ -29,6 +29,39 @@ enum /* DATA_TYPES */ {
 }
 
 
+/*const ICON_STEPS ="0";
+const ICON_ACTIVE_MINUTES = "2";
+const ICON_FLOORS_UP = "1";
+const ICON_HEART_EMPTY = "3";
+const ICON_HEART_FULL = "3";
+const ICON_NOTIFICATIONS_EMPTY = "5";
+const ICON_NOTIFICATIONS_FULL = "5";
+const ICON_BELL_EMPTY = ":";
+const ICON_BELL_FULL = ":";
+const ICON_BATTERY_EMPTY = "4";
+const ICON_BATTERY_FULL = "9";
+const ICON_BLUETOOTH_EMPTY = "8";
+const ICON_BLUETOOTH_FULL = "8";*/
+
+
+const ICON_STEPS="s";
+const ICON_ACTIVE_MINUTES = "t";
+const ICON_CALORIES = "c";
+const ICON_FLOORS_UP = "F";
+const ICON_FLOORS_DOWN = "f";
+const ICON_HEART_EMPTY = "P";
+const ICON_HEART_FULL = "p";
+const ICON_BELL_EMPTY = "A";
+const ICON_BELL_FULL= "a";
+const ICON_NOTIFICATIONS_EMPTY = "N";
+const ICON_NOTIFICATIONS_FULL = "n";
+const ICON_BATTERY_EMPTY = "k";
+const ICON_BATTERY_HALF = "m";
+const ICON_BATTERY_FULL = "h";
+const ICON_BATTERY_LOADING = "l";
+const ICON_BLUETOOTH_EMPTY = "B";
+const ICON_BLUETOOTH_FULL = "b";
+const ICON_DONT_DISTURB="d";
 
 class RaVelFaceView extends WatchUi.WatchFace {
 
@@ -46,6 +79,7 @@ class RaVelFaceView extends WatchUi.WatchFace {
 	private var mSecondsDisplayMode;
 	
 	private var mShowAlarmIcon;
+	private var mShowDontDisturbIcon;
 	private var mShowNotificationIcon;
 	
     function initialize() {
@@ -96,7 +130,7 @@ class RaVelFaceView extends WatchUi.WatchFace {
         {
         	values = self.getValuesForDataType( mTopDataType );
 			
-			var font = Graphics.FONT_MEDIUM;
+			var font = Graphics.FONT_LARGE;
 			var x = dc.getWidth()/2;
 			var y = mTime.getTopFieldY();
 			var textDims = dc.getTextDimensions(values[:text], font);
@@ -126,7 +160,13 @@ class RaVelFaceView extends WatchUi.WatchFace {
         if ( values[:isValid] ) {
         	var font = Graphics.FONT_NUMBER_MEDIUM;
         	
-        	var x = mTime.getLeftFieldAdjustX() + mTime.getSecondsX() / 2;
+        	var x;
+        	if (mTime.getHideSeconds()) {
+        		x = dc.getWidth()/2;
+        	}
+        	else {
+        		x = mTime.getLeftFieldAdjustX() + mTime.getSecondsX() / 2;
+        	}
         	var y = mTime.getSecondsY();
         	var textDims = dc.getTextDimensions(values[:text], font);
         	
@@ -134,8 +174,6 @@ class RaVelFaceView extends WatchUi.WatchFace {
 	        	dc.setColor( ( (values[:iconColor]!=null) ? values[:iconColor] : gIconColor ), Graphics.COLOR_TRANSPARENT);
 	        	
 	        	var iconDims = dc.getTextDimensions(values[:icon], mIconsFont);
-				var asc = Graphics.getFontAscent(font);
-				var desc = Graphics.getFontDescent(font);
 				dc.drawText(
 					x - textDims[0]/2,
 					y - (textDims[1]*3)/10 + iconDims[1]/2, /* icon higher so that it has more space*/
@@ -169,16 +207,16 @@ class RaVelFaceView extends WatchUi.WatchFace {
         		
 	        	dc.setColor( ( (values[:iconColor]!=null) ? values[:iconColor] : gIconColor ), Graphics.COLOR_TRANSPARENT);	
 				dc.drawText(
-					x + (textDims[0])/2,
+					x - (textDims[0])/2,
 					y,
-					mIconsFont, values[:icon], Graphics.TEXT_JUSTIFY_RIGHT|Graphics.TEXT_JUSTIFY_VCENTER);
+					mIconsFont, values[:icon], Graphics.TEXT_JUSTIFY_LEFT|Graphics.TEXT_JUSTIFY_VCENTER);
         	} 
     
            	dc.setColor( ( (values[:color]!=null) ? values[:color] : gThemeColour ), Graphics.COLOR_TRANSPARENT);
         	dc.drawText(
-        		x - textDims[0]/2, 
+        		x + textDims[0]/2, 
         		y, 
-        		font, values[:text], Graphics.TEXT_JUSTIFY_LEFT|Graphics.TEXT_JUSTIFY_VCENTER);
+        		font, values[:text], Graphics.TEXT_JUSTIFY_RIGHT|Graphics.TEXT_JUSTIFY_VCENTER);
         }
         
         
@@ -187,13 +225,20 @@ class RaVelFaceView extends WatchUi.WatchFace {
         var icons = "";
         if (mShowAlarmIcon) {
         	if ( System.getDeviceSettings().alarmCount ) {
-				var tmp = icons + ":";
+				var tmp = icons + ICON_BELL_FULL;
+				icons = tmp;
+        	}
+        }
+
+        if (mShowDontDisturbIcon) {
+        	if ( System.getDeviceSettings().doNotDisturb ) {
+				var tmp = icons + ICON_DONT_DISTURB;
 				icons = tmp;
         	}
         }
         if (mShowNotificationIcon) {
         	if ( System.getDeviceSettings().notificationCount ) {
-				var tmp = icons + "5";
+				var tmp = icons + ICON_NOTIFICATIONS_FULL;
 				icons = tmp;
         	}
         }
@@ -294,6 +339,7 @@ class RaVelFaceView extends WatchUi.WatchFace {
 		mBottomRightDataType = Application.getApp().getProperty("BottomDataType");
 		
 		mShowAlarmIcon = Application.getApp().getProperty("ShowAlarmIcon");
+		mShowDontDisturbIcon = Application.getApp().getProperty("ShowDontDisturbIcon");
 		mShowNotificationIcon = Application.getApp().getProperty("ShowNotificationIcon"); 
 	}
 	
@@ -309,33 +355,36 @@ class RaVelFaceView extends WatchUi.WatchFace {
 		switch (type) {
 			case DATA_TYPE_STEPS:
 				values[:value] = info.steps;
-				values[:icon] = "0";
+				values[:icon] = ICON_STEPS;
 				break;
 			case DATA_TYPE_ACTIVE_MINUTES:
 				if (info has :activeMinutesWeek) {
 					values[:value] = info.activeMinutesWeek.total;
 				}
-				values[:icon] = "2";
+				values[:icon] = ICON_ACTIVE_MINUTES;
 				break;
 			case DATA_TYPE_FLOORS_CLIMBED:
 				if (info has :floorsClimbed) {
 					values[:value] = info.floorsClimbed;
 				}
-				values[:icon] = "1";
+				values[:icon] = ICON_FLOORS_UP;
 				break;
 			case DATA_TYPE_NOTIFICATIONS:
 				values[:value] = settings.notificationCount;
 				if (settings.phoneConnected) {
 					if (settings.notificationCount == 0) {
 						values[:color] = gLowVisibilityColor;
+						values[:icon] = ICON_NOTIFICATIONS_EMPTY;
 					}
-					values[:icon] = "5";
+					else {
+						values[:icon] = ICON_NOTIFICATIONS_FULL;
+					}
 				}
 				else {
 					values[:text] = "-";
 					values[:color] = gWarnColor;
 					values[:iconColor] = gWarnColor;
-					values[:icon] = "8";
+					values[:icon] = ICON_BLUETOOTH_EMPTY;
 				}
 				break;
 			case DATA_TYPE_HEART_RATE:
@@ -349,15 +398,18 @@ class RaVelFaceView extends WatchUi.WatchFace {
 						values[:value] = sample.heartRate;
 					}
 				}
-				values[:icon] = "3";
+				values[:icon] = ICON_HEART_FULL;
 				break;
 			case DATA_TYPE_BATTERY:
 				values[:value] = Math.floor(System.getSystemStats().battery);
 				values[:text] = values[:value].format("%.0f");
-				values[:icon] = "9";
+				values[:icon] = ICON_BATTERY_FULL;
+				if (values[:value] < 80) {
+					values[:icon] = ICON_BATTERY_HALF;
+				}
 				if (values[:value] < 25) {
 					values[:color] = gWarnColor;
-					values[:icon] = "4";
+					values[:icon] = ICON_BATTERY_EMPTY;
 					values[:iconColor] = gWarnColor;
 				}
 				break;
@@ -389,7 +441,6 @@ class RaVelFaceView extends WatchUi.WatchFace {
 		
 		return values;
 	}
-	
 	
 	function getValuesForGoalType(type) {
 		var values = {
