@@ -29,7 +29,7 @@ enum /* DATA_TYPES */ {
 }
 
 
-/*const ICON_STEPS ="0";
+const ICON_STEPS ="0";
 const ICON_ACTIVE_MINUTES = "2";
 const ICON_FLOORS_UP = "1";
 const ICON_HEART_EMPTY = "3";
@@ -39,11 +39,12 @@ const ICON_NOTIFICATIONS_FULL = "5";
 const ICON_BELL_EMPTY = ":";
 const ICON_BELL_FULL = ":";
 const ICON_BATTERY_EMPTY = "4";
+const ICON_BATTERY_HALF = "9";
 const ICON_BATTERY_FULL = "9";
 const ICON_BLUETOOTH_EMPTY = "8";
-const ICON_BLUETOOTH_FULL = "8";*/
-
-
+const ICON_BLUETOOTH_FULL = "8";
+const ICON_DONT_DISTURB="?";
+/*
 const ICON_STEPS="s";
 const ICON_ACTIVE_MINUTES = "t";
 const ICON_CALORIES = "c";
@@ -62,13 +63,17 @@ const ICON_BATTERY_LOADING = "l";
 const ICON_BLUETOOTH_EMPTY = "B";
 const ICON_BLUETOOTH_FULL = "b";
 const ICON_DONT_DISTURB="d";
+*/
 
 class RaVelFaceView extends WatchUi.WatchFace {
 
 	private var mIsSleeping = false;
 	private var mTime;
 	private var mDrawables = {};
-	
+
+	private var mLeftMeterType;
+	private var mRightMeterType;
+		
 	private var mTopDataType;
 	
 	private var mBottomLeftDataType;
@@ -114,9 +119,7 @@ class RaVelFaceView extends WatchUi.WatchFace {
     	//System.println("onUpdate");
     	
 		// Clear any partial update clipping.
-		if (dc has :clearClip) {
-			dc.clearClip();
-		}
+		dc.clearClip();
 	
 		updateSecondsVisibility();
 		updateMeters();
@@ -321,6 +324,9 @@ class RaVelFaceView extends WatchUi.WatchFace {
         	gMinutesColour = gThemeColour;
         }
 
+
+		mLeftMeterType = Application.getApp().getProperty("LeftGoalType");
+		mRightMeterType = Application.getApp().getProperty("RightGoalType");
        
 		mSecondsDisplayMode = Application.getApp().getProperty("SecondsDisplayMode");
 		
@@ -499,13 +505,11 @@ class RaVelFaceView extends WatchUi.WatchFace {
 	
 
 	private function updateMeters() {
-		var leftType = Application.getApp().getProperty("LeftGoalType");
-		var leftValues = getValuesForGoalType(leftType);
-		mDrawables[:LeftGoalMeter].setValues(leftValues[:current], leftValues[:max], /* isOff */ leftType == GOAL_TYPE_OFF);
+		var leftValues = getValuesForGoalType(mLeftMeterType);
+		mDrawables[:LeftGoalMeter].setValues(leftValues[:current], leftValues[:max], /* isOff */ mLeftMeterType == GOAL_TYPE_OFF);
 
-		var rightType = Application.getApp().getProperty("RightGoalType");
-		var rightValues = getValuesForGoalType(rightType);
-		mDrawables[:RightGoalMeter].setValues(rightValues[:current], rightValues[:max], /* isOff */ rightType == GOAL_TYPE_OFF);
+		var rightValues = getValuesForGoalType(mRightMeterType);
+		mDrawables[:RightGoalMeter].setValues(rightValues[:current], rightValues[:max], /* isOff */ mRightMeterType == GOAL_TYPE_OFF);
 
 	}
 	
