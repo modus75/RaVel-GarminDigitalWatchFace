@@ -69,6 +69,6 @@ class RaVelFaceApp extends Application.AppBase {
 	}
 }
 
-function getApp() as TestFaceApp {
-    return Application.getApp() as TestFaceApp;
+function getApp() as RaVelFaceApp {
+    return Application.getApp() as RaVelFaceApp;
 }
