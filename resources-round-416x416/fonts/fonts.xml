@@ -6,5 +6,5 @@
 	<font id="TimeFontOutline" filename="../../resources/fonts/ArialNarrow-216-Bold-Outline.fnt" antialias="true"/>
 	<font id="TimeSmallFontOutline" filename="../../resources/fonts/ArialNarrow-204-Bold-Outline.fnt" antialias="true"/>
 	
-	<font id="IconsFont" filename="../../resources/fonts/crystal-icons.fnt" antialias="true"/>
+	<font id="IconsFont" filename="../../resources/fonts/connect32.fnt" antialias="true"/>
 </fonts>

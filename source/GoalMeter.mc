@@ -11,7 +11,9 @@ enum /* GOAL_TYPES */ {
 
 	GOAL_TYPE_STEPS = 0, // App.GOAL_TYPE_STEPS
 	GOAL_TYPE_FLOORS_CLIMBED, // App.GOAL_TYPE_FLOORS_CLIMBED
-	GOAL_TYPE_ACTIVE_MINUTES // App.GOAL_TYPE_ACTIVE_MINUTES
+	GOAL_TYPE_ACTIVE_MINUTES, // App.GOAL_TYPE_ACTIVE_MINUTES
+	GOAL_TYPE_BODY_BATTERY,
+	GOAL_TYPE_STRESS_LEVEL,
 }
 
 // Buffered drawing behaviour:
@@ -160,12 +162,12 @@ class GoalMeter extends Ui.Drawable {
 			// drawUnbuffered(dc, left, top);
 
 			// Filled segments: 0 --> fill height.
-			drawSegments(dc, left, top, gThemeColour, mSegments, 0, mFillHeight);
+			drawSegments(dc, left, top, $.gTheme.ForeColor, mSegments, 0, mFillHeight);
 
 			// Unfilled segments: fill height --> height.
 			// #62 ALL_SEGMENTS or ALL_SEGMENTS_MERGED.
 			if (App.getApp().getProperty("GoalMeterStyle") <= 1) {
-				drawSegments(dc, left, top, gEmptyMeterColour, mSegments, mFillHeight, mHeight);
+				drawSegments(dc, left, top, $.gTheme.EmptyMeterColor, mSegments, mFillHeight, mHeight);
 			}
 		}
 	}
@@ -188,8 +190,8 @@ class GoalMeter extends Ui.Drawable {
 		// Recreate buffers only if this is the very first draw(), or if optimised colour palette has changed e.g. theme colour
 		// change.
 		if (mBuffersNeedRecreate) {
-			mEmptyBuffer = createSegmentBuffer(gEmptyMeterColour);
-			mFilledBuffer = createSegmentBuffer(gFullMeterColour);
+			mEmptyBuffer = createSegmentBuffer($.gTheme.EmptyMeterColor);
+			mFilledBuffer = createSegmentBuffer($.gTheme.FullMeterColor);
 			mBuffersNeedRecreate = false;
 			mBuffersNeedRedraw = true; // Ensure newly-created buffers are drawn next.
 		}
@@ -199,17 +201,17 @@ class GoalMeter extends Ui.Drawable {
 
 			// Clear both buffers with background colour.
 			emptyBufferDc = mEmptyBuffer.getDc();
-			emptyBufferDc.setColor(Graphics.COLOR_TRANSPARENT, gBackgroundColour);
+			emptyBufferDc.setColor(Graphics.COLOR_TRANSPARENT, $.gTheme.BackgroundColor);
 			emptyBufferDc.clear();
 
 			filledBufferDc = mFilledBuffer.getDc();
-			filledBufferDc.setColor(Graphics.COLOR_TRANSPARENT, gBackgroundColour);
+			filledBufferDc.setColor(Graphics.COLOR_TRANSPARENT, $.gTheme.BackgroundColor);
 			filledBufferDc.clear();
 
 			// Draw full fill height for each buffer.
-			drawSegments(emptyBufferDc, 0, 0, gEmptyMeterColour, mSegments, 0, mHeight);
+			drawSegments(emptyBufferDc, 0, 0, $.gTheme.EmptyMeterColor, mSegments, 0, mHeight);
 			// #62 Could avoid drawing filled segments buffer if style is not ALL_SEGMENTS or ALL_SEGMENTS_MERGED.
-			drawSegments(filledBufferDc, 0, 0, gFullMeterColour, mSegments, 0, mHeight);
+			drawSegments(filledBufferDc, 0, 0, $.gTheme.FullMeterColor, mSegments, 0, mHeight);
 
 			// For arc meters, draw circular mask for each buffer.
 			if (Sys.getDeviceSettings().screenShape != Sys.SCREEN_SHAPE_RECTANGLE) {
@@ -218,10 +220,10 @@ class GoalMeter extends Ui.Drawable {
 				x = (mSide == :left) ? halfScreenDcWidth : (mWidth - halfScreenDcWidth - 1);
 				radius = halfScreenDcWidth - mStroke;
 
-				emptyBufferDc.setColor(gBackgroundColour, Graphics.COLOR_TRANSPARENT);
+				emptyBufferDc.setColor($.gTheme.BackgroundColor, Graphics.COLOR_TRANSPARENT);
 				emptyBufferDc.fillCircle(x, (mHeight / 2), radius);
 
-				filledBufferDc.setColor(gBackgroundColour, Graphics.COLOR_TRANSPARENT);
+				filledBufferDc.setColor($.gTheme.BackgroundColor, Graphics.COLOR_TRANSPARENT);
 				filledBufferDc.fillCircle(x, (mHeight / 2), radius);
 			}
 
@@ -262,7 +264,7 @@ class GoalMeter extends Ui.Drawable {
 			:height => mHeight,
 
 			// First palette colour appears to determine initial colour of buffer.
-			:palette => [gBackgroundColour, fillColour]
+			:palette => [$.gTheme.BackgroundColor, fillColour]
 		};
 
 		if ((Graphics has :createBufferedBitmap)) {

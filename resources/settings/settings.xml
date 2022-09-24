@@ -32,7 +32,10 @@
 			<listEntry value="4">@Strings.Notifications</listEntry>
 			<listEntry value="5">@Strings.HeartRate</listEntry>
 			<listEntry value="6">@Strings.Battery</listEntry>
-			<listEntry value="7">@Strings.Date</listEntry>
+			<listEntry value="7">@Strings.BodyBattery</listEntry>
+			<listEntry value="8">@Strings.StressLevel</listEntry>
+			<listEntry value="9">@Strings.Respiration</listEntry>
+			<listEntry value="16">@Strings.Date</listEntry>
 		</settingConfig>
 	</setting>
 
@@ -45,6 +48,9 @@
 			<listEntry value="4">@Strings.Notifications</listEntry>
 			<listEntry value="5">@Strings.HeartRate</listEntry>
 			<listEntry value="6">@Strings.Battery</listEntry>
+			<listEntry value="7">@Strings.BodyBattery</listEntry>
+			<listEntry value="8">@Strings.StressLevel</listEntry>
+			<listEntry value="9">@Strings.Respiration</listEntry>
 		</settingConfig>
 	</setting>
 
@@ -57,6 +63,9 @@
 			<listEntry value="4">@Strings.Notifications</listEntry>
 			<listEntry value="5">@Strings.HeartRate</listEntry>
 			<listEntry value="6">@Strings.Battery</listEntry>
+			<listEntry value="7">@Strings.BodyBattery</listEntry>
+			<listEntry value="8">@Strings.StressLevel</listEntry>
+			<listEntry value="9">@Strings.Respiration</listEntry>
 		</settingConfig>
 	</setting>
 
@@ -66,6 +75,8 @@
 			<listEntry value="1">@Strings.FloorsClimbed</listEntry>
 			<listEntry value="2">@Strings.ActiveMinutes</listEntry>
 			<listEntry value="-1">@Strings.Battery</listEntry>
+			<listEntry value="3">@Strings.BodyBattery</listEntry>
+			<listEntry value="4">@Strings.StressLevel</listEntry>
 			<listEntry value="-2">@Strings.Off</listEntry>
 		</settingConfig>
 	</setting>
@@ -76,6 +87,8 @@
 			<listEntry value="1">@Strings.FloorsClimbed</listEntry>
 			<listEntry value="2">@Strings.ActiveMinutes</listEntry>
 			<listEntry value="-1">@Strings.Battery</listEntry>
+			<listEntry value="3">@Strings.BodyBattery</listEntry>
+			<listEntry value="4">@Strings.StressLevel</listEntry>
 			<listEntry value="-2">@Strings.Off</listEntry>
 		</settingConfig>
 	</setting>
@@ -90,10 +103,37 @@
 		</settingConfig>
 	</setting>
 
+	<setting propertyKey="@Properties.LeftGaugeType" title="@Strings.LeftGaugeTitle">
+		<settingConfig type="list">
+			<listEntry value="0">@Strings.Steps</listEntry>
+			<listEntry value="1">@Strings.FloorsClimbed</listEntry>
+			<listEntry value="2">@Strings.ActiveMinutes</listEntry>
+			<listEntry value="-1">@Strings.Battery</listEntry>
+			<listEntry value="3">@Strings.BodyBattery</listEntry>
+			<listEntry value="4">@Strings.StressLevel</listEntry>
+			<listEntry value="-2">@Strings.Off</listEntry>
+		</settingConfig>
+	</setting>
+
+	<setting propertyKey="@Properties.RightGaugeType" title="@Strings.RightGaugeTitle">
+		<settingConfig type="list">
+			<listEntry value="0">@Strings.Steps</listEntry>
+			<listEntry value="1">@Strings.FloorsClimbed</listEntry>
+			<listEntry value="2">@Strings.ActiveMinutes</listEntry>
+			<listEntry value="-1">@Strings.Battery</listEntry>
+			<listEntry value="3">@Strings.BodyBattery</listEntry>
+			<listEntry value="4">@Strings.StressLevel</listEntry>
+			<listEntry value="-2">@Strings.Off</listEntry>
+		</settingConfig>
+	</setting>
+
     <setting propertyKey="@Properties.ShowAlarmIcon" title="@Strings.ShowAlarmIconTitle">
         <settingConfig type="boolean" />
     </setting>
     <setting propertyKey="@Properties.ShowDontDisturbIcon" title="@Strings.ShowDontDisturbIconTitle">
+        <settingConfig type="boolean" />
+    </setting>
+    <setting propertyKey="@Properties.ShowSleepModeIcon" title="@Strings.ShowSleepModeIconTitle">
         <settingConfig type="boolean" />
     </setting>
     <setting propertyKey="@Properties.ShowNotificationIcon" title="@Strings.ShowNotificationIconTitle">

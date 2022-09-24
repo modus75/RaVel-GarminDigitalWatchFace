@@ -28,6 +28,8 @@ class ThickThinTime extends Ui.Drawable {
 
 	private var mHideSeconds = false;
 	private var mBurnProtection = false;
+	private var mLastBurnOffsets = [0,0];
+	private var mLastBurnOffsetsChangedMinute = 0;
 
 	private var AM_PM_X_OFFSET = 2;
 
@@ -74,6 +76,8 @@ class ThickThinTime extends Ui.Drawable {
 
 	function setBurnProtection(burnProtection) {
 		self.mBurnProtection = burnProtection;
+		self.mLastBurnOffsetsChangedMinute = Sys.getClockTime().min;
+		self.mLastBurnOffsets = [0,0];
 	}
 
 	function getSecondsX() {
@@ -99,53 +103,47 @@ class ThickThinTime extends Ui.Drawable {
 
 	function drawHoursMinutes(dc) {
 		var clockTime = Sys.getClockTime();
-		var formattedTime = App.getApp().getFormattedTime(clockTime.hour, clockTime.min);
+		var formattedTime = self.getFormattedTime(clockTime.hour, clockTime.min);
 		formattedTime[:amPm] = formattedTime[:amPm].toUpper();
 
 		var hours = formattedTime[:hour];
 		var minutes = formattedTime[:min];
-		//var amPmText = formattedTime[:amPm];
 
-		var halfDCWidth = dc.getWidth() / 2;
-		var halfDCHeight = (dc.getHeight() / 2) + self.mAdjustY;
+		var x = dc.getWidth() / 2;
+		var y = (dc.getHeight() / 2) + self.mAdjustY;
+		
+		if (self.mBurnProtection) {
+			if (self.mLastBurnOffsetsChangedMinute != clockTime.min) {
+				var offsets = [ -6, 0, 12, 18, 12, 0 ];
+				var burnInOffset = offsets[clockTime.min % offsets.size()] + (Toybox.Math.rand() % 6 - 3);
 
-		//var hoursWidth = dc.getTextWidthInPixels(hours, mHoursFont);
-		//var minutesWidth = dc.getTextWidthInPixels(minutes, mMinutesFont);
-
-		var x = halfDCWidth;
+				self.mLastBurnOffsets = [Toybox.Math.rand() % 12 - 6, burnInOffset];
+				self.mLastBurnOffsetsChangedMinute = clockTime.min;
+			}
+			x += self.mLastBurnOffsets[0];
+			y += self.mLastBurnOffsets[1];
+		}
 
 		// Draw hours.
-		dc.setColor(gHoursColour, Graphics.COLOR_TRANSPARENT);
+		dc.setColor($.gTheme.HoursColor, Graphics.COLOR_TRANSPARENT);
 		dc.drawText(
 			x + self.mHoursAdjustX,
-			halfDCHeight,
+			y,
 			self.mBurnProtection ? self.mHoursFontOutline : self.mHoursFont,
 			hours,
 			Graphics.TEXT_JUSTIFY_RIGHT | Graphics.TEXT_JUSTIFY_VCENTER
 		);
 
 		// Draw minutes.
-		dc.setColor(gMinutesColour, Graphics.COLOR_TRANSPARENT);
+		dc.setColor($.gTheme.MinutesColor, Graphics.COLOR_TRANSPARENT);
 		dc.drawText(
 			x + self.mMinutesAdjustX,
-			halfDCHeight,
+			y,
 			self.mBurnProtection ? self.mMinutesFontOutline : self.mMinutesFont,
 			minutes,
 			Graphics.TEXT_JUSTIFY_LEFT | Graphics.TEXT_JUSTIFY_VCENTER
 		);
 
-		// If required, draw AM/PM after minutes, vertically centred.
-/*		if (amPmText.length() > 0) {
-			dc.setColor(gThemeColour, Graphics.COLOR_TRANSPARENT);
-			x += dc.getTextWidthInPixels(minutes, mMinutesFont);
-			dc.drawText(
-				x + AM_PM_X_OFFSET, // Breathing space between minutes and AM/PM.
-				halfDCHeight,
-				mSecondsFont,
-				amPmText,
-				Graphics.TEXT_JUSTIFY_LEFT | Graphics.TEXT_JUSTIFY_VCENTER
-			);
-		}*/
 	}
 
 	// Called to draw seconds both as part of full draw(), but also onPartialUpdate() of watch face in low power mode.
@@ -170,16 +168,16 @@ class ThickThinTime extends Ui.Drawable {
 
 			// Can't optimise setting colour once, at start of low power mode, at this goes wrong on real hardware: alternates
 			// every second with inverse (e.g. blue text on black, then black text on blue).
-			dc.setColor($.gThemeColour, $.gBackgroundColour );
-			//dc.setColor($.gThemeColour, Graphics.COLOR_RED ); // debug
+			dc.setColor($.gTheme.ForeColor, $.gTheme.BackgroundColor );
+			//dc.setColor($.gTheme.ForeColor, Graphics.COLOR_RED ); // debug
 
 			// Clear old rect (assume nothing overlaps seconds text).
 			dc.clear();
 
 		} else {
 			// Drawing will not be clipped, so ensure background is transparent in case font height overlaps with another drawable.
-			dc.setColor($.gThemeColour, Graphics.COLOR_TRANSPARENT);
-			//dc.setColor($.gThemeColour, Graphics.COLOR_RED); // debug
+			dc.setColor($.gTheme.ForeColor, Graphics.COLOR_TRANSPARENT);
+			//dc.setColor($.gTheme.ForeColor, Graphics.COLOR_RED); // debug
 		}
 
 		dc.drawText(
@@ -212,7 +210,7 @@ class ThickThinTime extends Ui.Drawable {
 		else {
 			self.mMinutesFont = Ui.loadResource(minutesFontType ? Rez.Fonts.TimeSmallFont : Rez.Fonts.TimeFont);
 			if (Rez.Fonts has :TimeFontOutline && Rez.Fonts has :TimeSmallFontOutline) {
-				self.mMinutesFontOutline = Ui.loadResource(hoursFontType ? Rez.Fonts.TimeSmallFontOutline : Rez.Fonts.TimeFontOutline);
+				self.mMinutesFontOutline = Ui.loadResource(minutesFontType ? Rez.Fonts.TimeSmallFontOutline : Rez.Fonts.TimeFontOutline);
 			}
 			else {
 				self.mMinutesFontOutline = self.mMinutesFont;
@@ -237,4 +235,39 @@ class ThickThinTime extends Ui.Drawable {
 
 		self.mSecondsFont = Graphics.FONT_NUMBER_MEDIUM;
 	}
+
+
+	function getFormattedTime(hour, min) {
+		var amPm = "";
+
+		if (!System.getDeviceSettings().is24Hour) {
+
+			// #6 Ensure noon is shown as PM.
+			var isPm = (hour >= 12);
+			if (isPm) {
+				
+				// But ensure noon is shown as 12, not 00.
+				if (hour > 12) {
+					hour = hour - 12;
+				}
+				amPm = "p";
+			} else {
+				
+				// #27 Ensure midnight is shown as 12, not 00.
+				if (hour == 0) {
+					hour = 12;
+				}
+				amPm = "a";
+			}
+		}
+
+		hour = hour.format( self.mBurnProtection ? "%d" : "%02d");
+
+		return {
+			:hour => hour,
+			:min => min.format("%02d"),
+			:amPm => amPm
+		};
+	}
+
 }

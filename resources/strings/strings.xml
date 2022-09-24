@@ -19,7 +19,9 @@
     <string id="LeftGoalMeterTitle">Left meter</string>
     <string id="RightGoalMeterTitle">Right meter</string>
     <string id="GoalMeterStyleTitle">Meter style</string>
-    <string id="MeterDigitsStyleTitle">Meter digit style</string>
+
+    <string id="LeftGaugeTitle">Left gauge</string>
+    <string id="RightGaugeTitle">Right gauge</string>
 
 	<string id="Always">Always</string>
 	<string id="SecondsDisplayAuto">Automatic (saves battery)</string>
@@ -27,9 +29,12 @@
 	<string id="Steps">Steps</string>
 	<string id="FloorsClimbed">Floors Climbed</string>
 	<string id="ActiveMinutes">Active Minutes (Weekly)</string>
+	<string id="BodyBattery">Body Battery</string>
+	<string id="StressLevel">Stress Level</string>
 	<string id="Off">Off</string>
 	<string id="Notifications">Notifications</string>
 	<string id="HeartRate">Heart rate</string>
+	<string id="Respiration">Respiration rate</string>
 	<string id="Date">Date</string>
 
 	<string id="AllSegmentsMerged">All Segments (Merged)</string>
@@ -42,6 +47,7 @@
 	
 	<string id="ShowAlarmIconTitle">Show alarm icon</string>
 	<string id="ShowDontDisturbIconTitle">Show do not disturb icon</string>
+	<string id="ShowSleepModeIconTitle">Show sleep mode icon</string>
 	<string id="ShowNotificationIconTitle">Show notification icon</string>
 
 </strings>
