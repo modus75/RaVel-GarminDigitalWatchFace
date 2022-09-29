@@ -5,16 +5,6 @@ using Toybox.Graphics;
 
 // const MIN_WHOLE_SEGMENT_HEIGHT = 5;
 
-enum /* GOAL_TYPES */ {
-	GOAL_TYPE_BATTERY = -1,
-	GOAL_TYPE_OFF = -2,
-
-	GOAL_TYPE_STEPS = 0, // App.GOAL_TYPE_STEPS
-	GOAL_TYPE_FLOORS_CLIMBED, // App.GOAL_TYPE_FLOORS_CLIMBED
-	GOAL_TYPE_ACTIVE_MINUTES, // App.GOAL_TYPE_ACTIVE_MINUTES
-	GOAL_TYPE_BODY_BATTERY,
-	GOAL_TYPE_STRESS_LEVEL,
-}
 
 // Buffered drawing behaviour:
 // - On initialisation: calculate clip width (non-trivial for arc shape); create buffers for empty and filled segments.
@@ -24,6 +14,7 @@ enum /* GOAL_TYPES */ {
 //   contains all segments in appropriate colour, with separators. Maximum of 2 draws to screen on each draw() cycle.
 class GoalMeter extends Ui.Drawable {
 
+	private var _goalMeterStyle;
 	private var mSide; // :left, :right.
 	private var mStroke; // Stroke width.
 	private var mWidth; // Clip width of meter.
@@ -41,8 +32,9 @@ class GoalMeter extends Ui.Drawable {
 	private var mBuffersNeedRedraw = true; // Buffers need to be redrawn on next draw() cycle.
 
 	private var mCurrentValue;
-	private var mMaxValue;
+	private var _values;
 	private var mIsOff = false; // #114 Should entire meter on this side be hidden?
+	private var _iconFont;
 
 	// private enum /* GOAL_METER_STYLES */ {
 	// 	ALL_SEGMENTS,
@@ -84,26 +76,30 @@ class GoalMeter extends Ui.Drawable {
 		return width;
 	}
 
-	function setValues(current, max, isOff) {
+	function setIconFont(iconFont) {
+		self._iconFont = iconFont;
+	}
 
-		// If max value changes, recalculate and cache segment layout, and set mBuffersNeedRedraw flag. Can't redraw buffers here,
-		// as we don't have reference to screen DC, in order to determine its dimensions - do this later, in draw() (already in
-		// draw cycle, so no real benefit in fetching screen width). Clear current value to force recalculation of fillHeight.
-		if (max != mMaxValue) {
-			mMaxValue = max;
-			mCurrentValue = null;
+	function setValues(values) {
+		self.mIsOff = values == null;
 
-			mSegments = getSegments();
-			mBuffersNeedRedraw = true;
+		if (values != null) {
+			if (self._values == null || values[:max] != self._values[:max]) {
+				self._values = values;
+				mCurrentValue = null;
+
+				mSegments = getSegments();
+				mBuffersNeedRedraw = true;
+			}
+			else {
+				self._values = values;
+			}
+
+			if (self._values[:value] != mCurrentValue) {
+				mCurrentValue = self._values[:value];
+				mFillHeight = getFillHeight(mSegments);
+			}
 		}
-
-		// If current value changes, recalculate fill height, ahead of draw().
-		if (current != mCurrentValue) {
-			mCurrentValue = current;
-			mFillHeight = getFillHeight(mSegments);
-		}
-
-		mIsOff = isOff;
 	}
 
 	function onSettingsChanged() {
@@ -111,12 +107,12 @@ class GoalMeter extends Ui.Drawable {
 
 		// #18 Only read separator width from layout if multi segment style is selected.
 		// #62 Or if filled segment style is selected.
-		var goalMeterStyle = App.getApp().getProperty("GoalMeterStyle");
-		if ((goalMeterStyle == 0 /* ALL_SEGMENTS */) || (goalMeterStyle == 3 /* FILLED_SEGMENTS */)) {
+		self._goalMeterStyle = App.getApp().getProperty("GoalMeterStyle");
+		if ((self._goalMeterStyle == 0 /* ALL_SEGMENTS */) || (self._goalMeterStyle == 3 /* FILLED_SEGMENTS */)) {
 
 			// Force recalculation of mSegments in setValues() if mSeparator is about to change.
 			if (mSeparator != mLayoutSeparator) {
-				mMaxValue = null;
+				self._values = null;
 			}
 
 			mSeparator = mLayoutSeparator;
@@ -125,7 +121,7 @@ class GoalMeter extends Ui.Drawable {
 
 			// Force recalculation of mSegments in setValues() if mSeparator is about to change.
 			if (mSeparator != 0) {
-				mMaxValue = null;
+				self._values = null;
 			}
 
 			mSeparator = 0;
@@ -144,7 +140,7 @@ class GoalMeter extends Ui.Drawable {
 	function draw(dc) {
 
 		// #114 TODO: Any buffers not yet reclaimed if goal meter set to off.
-		if ((App.getApp().getProperty("GoalMeterStyle") == 2 /* HIDDEN */) || mIsOff) {
+		if (self._goalMeterStyle == 2 /* HIDDEN */ || mIsOff) {
 			return;
 		}
 
@@ -166,9 +162,19 @@ class GoalMeter extends Ui.Drawable {
 
 			// Unfilled segments: fill height --> height.
 			// #62 ALL_SEGMENTS or ALL_SEGMENTS_MERGED.
-			if (App.getApp().getProperty("GoalMeterStyle") <= 1) {
+			if (self._goalMeterStyle <= 1) {
 				drawSegments(dc, left, top, $.gTheme.EmptyMeterColor, mSegments, mFillHeight, mHeight);
 			}
+		}
+
+		if (self._iconFont != null && self._values[:icon] != null) {
+			dc.setColor( ( (self._values[:valueColor]!=null) ? self._values[:valueColor] : $.gTheme.IconColor ), Graphics.COLOR_TRANSPARENT);
+
+			dc.drawText(
+						(mSide == :left) ? mWidth : (dc.getWidth() - mWidth),
+						(dc.getHeight() + mHeight) / 2 + 4,
+						self._iconFont, self._values[:icon], ((mSide == :left) ? Graphics.TEXT_JUSTIFY_LEFT : Graphics.TEXT_JUSTIFY_RIGHT)|Graphics.TEXT_JUSTIFY_VCENTER);
+
 		}
 	}
 
@@ -242,7 +248,7 @@ class GoalMeter extends Ui.Drawable {
 
 		// Draw unfilled segments.
 		// #62 ALL_SEGMENTS or ALL_SEGMENTS_MERGED.
-		if (App.getApp().getProperty("GoalMeterStyle") <= 1) {
+		if (self._goalMeterStyle <= 1) {
 			clipBottom = clipTop;
 			clipTop = top;
 			clipHeight = clipBottom - clipTop;
@@ -333,7 +339,7 @@ class GoalMeter extends Ui.Drawable {
 	function getSegments() {
 		var segmentScale = getSegmentScale(); // Value each whole segment represents.
 
-		var numSegments = mMaxValue * 1.0 / segmentScale; // Including any partial. Force floating-point division.
+		var numSegments = self._values[:max] * 1.0 / segmentScale; // Including any partial. Force floating-point division.
 		var numSeparators = Math.ceil(numSegments) - 1;
 
 		var totalSegmentHeight = mHeight - (numSeparators * mSeparator); // Subtract total separator height from full height.		
@@ -371,7 +377,7 @@ class GoalMeter extends Ui.Drawable {
 			totalSegmentHeight += segments[i];
 		}
 
-		var remainingFillHeight = Math.floor((mCurrentValue * 1.0 / mMaxValue) * totalSegmentHeight).toNumber(); // Excluding separators.
+		var remainingFillHeight = Math.floor((mCurrentValue * 1.0 / self._values[:max]) * totalSegmentHeight).toNumber(); // Excluding separators.
 		fillHeight = remainingFillHeight;
 
 		for (i = 0; i < segments.size(); ++i) {
@@ -403,7 +409,7 @@ class GoalMeter extends Ui.Drawable {
 		do {
 			segmentScale = SEGMENT_SCALES[tryScaleIndex];
 
-			numSegments = mMaxValue * 1.0 / segmentScale;
+			numSegments = self._values[:max] * 1.0 / segmentScale;
 			numSeparators = Math.ceil(numSegments);
 			totalSegmentHeight = mHeight - (numSeparators * mSeparator);
 			segmentHeight = Math.floor(totalSegmentHeight / numSegments);

@@ -8,15 +8,15 @@ using Toybox.Time.Gregorian;
 using Toybox.SensorHistory;
 
 
-var gTheme = new Theme();
+var gTheme;
 
 
 enum /* DATA_TYPES */ {
 	DATA_TYPE_OFF = 0,
 
 	DATA_TYPE_STEPS = 1,
-	DATA_TYPE_ACTIVE_MINUTES = 2,
-	DATA_TYPE_FLOORS_CLIMBED = 3,
+	DATA_TYPE_FLOORS_CLIMBED = 2,
+	DATA_TYPE_ACTIVE_MINUTES = 3,
 	DATA_TYPE_NOTIFICATIONS = 4,
 	DATA_TYPE_HEART_RATE = 5,
 	DATA_TYPE_BATTERY = 6,
@@ -33,13 +33,11 @@ const BURN_PROTECTION_SHOW_TEXT = 2;
 
 class RaVelFaceView extends WatchUi.WatchFace {
 	private var mTime;
-	private var mDrawables = {};
+	private var mGauges = [null, null];
+	private var mMeters = [null, null];
 
-	private var mLeftMeterType;
-	private var mRightMeterType;
-
-	private var mLeftGaugeType;
-	private var mRightGaugeType;
+	private var mMeterTypes = [0 , 0];
+	private var mGaugeTypes = [0 , 0];
 
 	private var mTopDataType;
 
@@ -52,36 +50,48 @@ class RaVelFaceView extends WatchUi.WatchFace {
 
 	private var mShowAlarmIcon;
 	private var mShowDontDisturbIcon;
-	private var mShowSleepModeIcon;
 	private var mShowNotificationIcon;
 
 	private var mBurnProtection = false;
 	private var mLastBurnOffsets = [0,0];
 	private var mLastBurnOffsetsChangedMinute = 0;
 
+	private var _lightDimmer;
+	private var _sleepTimeTracker as SleepTimeTracker;
+
     function initialize() {
         WatchFace.initialize();
-
-        self.onSettingsChanged();
+		$.gTheme = new Theme();
     }
 
-    // Load your resources here
     function onLayout(dc as Dc) as Void {
         setLayout(Rez.Layouts.WatchFace(dc));
+
         mIconsFont = WatchUi.loadResource(Rez.Fonts.IconsFont);
-
-        mDrawables[:LeftGoalMeter] = View.findDrawableById("LeftGoalMeter");
-		mDrawables[:RightGoalMeter] = View.findDrawableById("RightGoalMeter");
-        mDrawables[:LeftGauge] = View.findDrawableById("LeftGauge");
-		if (mDrawables[:LeftGauge]) {
-			mDrawables[:LeftGauge].setIconFont( self.mIconsFont );
-		}	
-		mDrawables[:RightGauge] = View.findDrawableById("RightGauge");
-		if (mDrawables[:RightGauge]) {
-			mDrawables[:RightGauge].setIconFont( self.mIconsFont );
-		}
-
         mTime = View.findDrawableById("Time");
+
+		mMeters[0] = View.findDrawableById("LeftGoalMeter");
+		mMeters[1] = View.findDrawableById("RightGoalMeter");
+
+		mGauges[0] = View.findDrawableById("LeftGauge");
+		mGauges[1] = View.findDrawableById("RightGauge");
+
+		if (System.getDeviceSettings().screenWidth > 400) {
+			self._lightDimmer = new TimeBasedDimmer();
+			mMeters[0].setIconFont(mIconsFont);
+			mMeters[1].setIconFont(mIconsFont);
+		}
+		else {
+			self._lightDimmer = new LightDimmer();
+		}
+		_sleepTimeTracker = new SleepTimeTracker();
+
+		for (var i=0 ;i<2 ; i++) {
+			if (mGauges[i]) {
+				mGauges[i].setIconFont( self.mIconsFont );
+				mGauges[i].setY( mTime.getTopFieldY() - 1 );
+			}
+		}
 
         self.onSettingsChanged();
 
@@ -93,13 +103,21 @@ class RaVelFaceView extends WatchUi.WatchFace {
 		// Clear any partial update clipping.
 		dc.clearClip();
 
-		updateSecondsVisibility();
-		updateMeters();
-		updateGauges();
-		if (self.mBurnProtection && self.mLastBurnOffsetsChangedMinute !=  System.getClockTime().min) {
-			self.mLastBurnOffsets = [Math.rand() % 12 - 6, Math.rand() % 12 - 6];
-			self.mLastBurnOffsetsChangedMinute = System.getClockTime().min;
+		var now = System.getClockTime();
+		self._lightDimmer.check( now );
+		self._sleepTimeTracker.onUpdate();
+
+		if (self.mBurnProtection && self.mLastBurnOffsetsChangedMinute !=  now.min) {
+			self.mLastBurnOffsets = [Math.rand() % 16 - 8, Math.rand() % 16 - 8];
+			self.mLastBurnOffsetsChangedMinute = now.min;
+			for (var i=0; i < 2; i++) {
+				if (self.mGauges[i]) {
+					self.mGauges[i].setXYOffset(self.mLastBurnOffsets[0], self.mLastBurnOffsets[1]);
+				}
+			}
 		}
+
+		updateDrawables();
 
         // Call the parent onUpdate function to redraw the layout
         View.onUpdate(dc);
@@ -117,7 +135,7 @@ class RaVelFaceView extends WatchUi.WatchFace {
 				var textDims = dc.getTextDimensions(values[:text], font);
 
 				if ( values[:icon] != null ) {
-					dc.setColor( ( (values[:iconColor]!=null) ? values[:iconColor] : $.gTheme.IconColor ), Graphics.COLOR_TRANSPARENT);
+					dc.setColor( ( (values[:valueColor]!=null) ? values[:valueColor] : $.gTheme.IconColor ), Graphics.COLOR_TRANSPARENT);
 
 					var iconDims = dc.getTextDimensions(values[:icon], self.mIconsFont);
 					textDims[0] += iconDims[0]; // center on icon+text
@@ -154,7 +172,7 @@ class RaVelFaceView extends WatchUi.WatchFace {
 				var textDims = dc.getTextDimensions(values[:text], font);
 
 				if ( values[:icon] != null && x-textDims[0]/2 > 10 ) {
-					dc.setColor( values[:iconColor]!=null ? values[:iconColor] : $.gTheme.IconColor, Graphics.COLOR_TRANSPARENT);
+					dc.setColor( values[:valueColor]!=null ? values[:valueColor] : $.gTheme.IconColor, Graphics.COLOR_TRANSPARENT);
 
 					var iconDims = dc.getTextDimensions(values[:icon], mIconsFont);
 					dc.drawText(
@@ -163,7 +181,7 @@ class RaVelFaceView extends WatchUi.WatchFace {
 						self.mIconsFont, values[:icon], Graphics.TEXT_JUSTIFY_RIGHT|Graphics.TEXT_JUSTIFY_VCENTER);
 				}
 
-				dc.setColor( values[:color]!=null ? values[:color] : $.gTheme.ForeColor, Graphics.COLOR_TRANSPARENT);
+				dc.setColor( values[:valueColor]!=null ? values[:valueColor] : $.gTheme.ForeColor, Graphics.COLOR_TRANSPARENT);
 				dc.drawText(
 					x,
 					y,
@@ -196,7 +214,7 @@ class RaVelFaceView extends WatchUi.WatchFace {
 					textDims[0] += iconDims[0]; // center on icon+text
 
 					if (!self.mBurnProtection || values[:burnProtection] & BURN_PROTECTION_SHOW_ICON) {
-						dc.setColor( values[:iconColor]!=null ? values[:iconColor] : $.gTheme.IconColor, Graphics.COLOR_TRANSPARENT);
+						dc.setColor( values[:valueColor]!=null ? values[:valueColor] : $.gTheme.IconColor, Graphics.COLOR_TRANSPARENT);
 						dc.drawText(
 							x - (textDims[0])/2,
 							y,
@@ -205,7 +223,7 @@ class RaVelFaceView extends WatchUi.WatchFace {
 				}
 
 				if (!self.mBurnProtection || values[:burnProtection] & BURN_PROTECTION_SHOW_TEXT) {
-					dc.setColor( values[:color]!=null ? values[:color] : $.gTheme.ForeColor, Graphics.COLOR_TRANSPARENT);
+					dc.setColor( values[:valueColor]!=null ? values[:valueColor] : $.gTheme.ForeColor, Graphics.COLOR_TRANSPARENT);
 					dc.drawText(
 						x + textDims[0]/2,
 						y,
@@ -220,7 +238,7 @@ class RaVelFaceView extends WatchUi.WatchFace {
 			var icons = "";
 			if (self.mShowAlarmIcon) {
 				if ( System.getDeviceSettings().alarmCount ) {
-					var tmp = icons + ICON_BELL_FULL;
+					var tmp = icons + ICON_ALARMS;
 					icons = tmp;
 				}
 			}
@@ -229,11 +247,6 @@ class RaVelFaceView extends WatchUi.WatchFace {
 				if ( System.getDeviceSettings().doNotDisturb ) {
 					var tmp = icons + ICON_DONT_DISTURB;
 					icons = tmp;
-				}
-			}
-			if (self.mShowSleepModeIcon) {
-				if ( ActivityMonitor.getInfo() has :isSleepMode && ActivityMonitor.getInfo().isSleepMode ) {
-					icons = (icons + ICON_SLEEP);
 				}
 			}
 			if (self.mShowNotificationIcon) {
@@ -263,21 +276,25 @@ class RaVelFaceView extends WatchUi.WatchFace {
 	}
 
 	function onShow() as Void {
-		System.println("onShow");
+		//TRACE("onShow");
+		_sleepTimeTracker.onShow();
 	}
 
 	function onHide() as Void {
-		System.println("onHide");
+		//TRACE("onHide");
+		_sleepTimeTracker.onHide();
 	}
 
 	function onExitSleep() as Void {
-		System.println("onExitSleep");
+		//TRACE("onExitSleep");
+		_sleepTimeTracker.onExitSleep();
 		self.mBurnProtection = false;
 		self.mTime.setBurnProtection(self.mBurnProtection);
 	}
 
 	function onEnterSleep() as Void {
-		System.println("onEnterSleep");
+		//TRACE("onEnterSleep");
+		_sleepTimeTracker.onEnterSleep();
 		if (System.getDeviceSettings().requiresBurnInProtection) {
 			self.mBurnProtection = true;
 			self.mLastBurnOffsetsChangedMinute = System.getClockTime().min;
@@ -286,26 +303,36 @@ class RaVelFaceView extends WatchUi.WatchFace {
 		}
 	}
 
+	function onBackgroundSleepTime() as Void {
+		_sleepTimeTracker.onBackgroundSleepTime();
+	}
+
+	function onBackgroundWakeTime() as Void {
+		_sleepTimeTracker.onBackgroundWakeTime();
+	}
 
 	function onSettingsChanged() {
+		self._lightDimmer.onSettingsChanged();
 		$.gTheme.onSettingsChanged();
 
 		var theme = getApp().getProperty("Theme");
 
-		self.mLeftMeterType = Application.getApp().getProperty("LeftGoalType");
-		self.mRightMeterType = Application.getApp().getProperty("RightGoalType");
-		self.mLeftGaugeType = Application.getApp().getProperty("LeftGaugeType");
-		self.mRightGaugeType = Application.getApp().getProperty("RightGaugeType");
+		self.mMeterTypes[0] = Application.getApp().getProperty("LeftGoalType");
+		self.mMeterTypes[1] = Application.getApp().getProperty("RightGoalType");
+		self.mGaugeTypes[0] = Application.getApp().getProperty("LeftGaugeType");
+		self.mGaugeTypes[1] = Application.getApp().getProperty("RightGaugeType");
 
-		mSecondsDisplayMode = Application.getApp().getProperty("SecondsDisplayMode");
+		self.mSecondsDisplayMode = Application.getApp().getProperty("SecondsDisplayMode");
 
-		if (mDrawables.size() > 0) {
-			mDrawables[:LeftGoalMeter].onSettingsChanged();
-			mDrawables[:RightGoalMeter].onSettingsChanged();
+		if (mTime != null) {
+			mMeters[0].onSettingsChanged();
+			mMeters[1].onSettingsChanged();
 
 			mTime.onSettingsChanged();
 
-			updateSecondsVisibility();
+			if ( self.mSecondsDisplayMode < 2 ) {
+				self.mTime.setHideSeconds(self.mSecondsDisplayMode ? false : true);
+			}
 		}
 
 
@@ -315,13 +342,11 @@ class RaVelFaceView extends WatchUi.WatchFace {
 
 		mShowAlarmIcon = Application.getApp().getProperty("ShowAlarmIcon");
 		mShowDontDisturbIcon = Application.getApp().getProperty("ShowDontDisturbIcon");
-		mShowSleepModeIcon = Application.getApp().getProperty("ShowSleepModeIcon");
 		mShowNotificationIcon = Application.getApp().getProperty("ShowNotificationIcon");
 	}
 
 
 	function getValuesForDataType(type) {
-		var burnProtection = self.mBurnProtection;
 		var values = {
 			:isValid => true
 		};
@@ -332,17 +357,20 @@ class RaVelFaceView extends WatchUi.WatchFace {
 		switch (type) {
 			case DATA_TYPE_STEPS:
 				values[:value] = info.steps;
+				values[:max] = info.stepGoal;
 				values[:icon] = ICON_STEPS;
 				break;
 			case DATA_TYPE_ACTIVE_MINUTES:
 				if (info has :activeMinutesWeek) {
 					values[:value] = info.activeMinutesWeek.total;
+					values[:max] = 100;
 				}
 				values[:icon] = ICON_ACTIVE_MINUTES;
 				break;
 			case DATA_TYPE_FLOORS_CLIMBED:
 				if (info has :floorsClimbed) {
 					values[:value] = info.floorsClimbed;
+					values[:max] = info.floorsClimbedGoal;
 				}
 				values[:icon] = ICON_FLOORS_UP;
 				break;
@@ -350,13 +378,14 @@ class RaVelFaceView extends WatchUi.WatchFace {
 				values[:value] = settings.notificationCount;
 				if (settings.phoneConnected) {
 					if (settings.notificationCount == 0) {
-						values[:color] = $.gTheme.LowKeyColor;
+						values[:valueColor] = $.gTheme.LowKeyColor;
 						values[:icon] = ICON_NOTIFICATIONS_EMPTY;
 					}
 					else {
 						values[:icon] = ICON_NOTIFICATIONS_FULL;
-						if (burnProtection) {
-							values[:iconColor] = $.gTheme.ForeColor;
+						values[:max] = 1;
+						if (self.mBurnProtection || self._sleepTimeTracker.getSleepMode()) {
+							values[:valueColor] = $.gTheme.ForeColor;
 							values[:burnProtection] = BURN_PROTECTION_SHOW_ICON;
 						}
 					}
@@ -364,8 +393,7 @@ class RaVelFaceView extends WatchUi.WatchFace {
 				else {
 					values[:text] = "-";
 					values[:burnProtection] = BURN_PROTECTION_SHOW_ICON;
-					values[:color] = $.gTheme.WarnColor;
-					values[:iconColor] = $.gTheme.WarnColor;
+					values[:valueColor] = $.gTheme.WarnColor;
 					values[:icon] = ICON_BLUETOOTH_EMPTY;
 				}
 				break;
@@ -380,11 +408,12 @@ class RaVelFaceView extends WatchUi.WatchFace {
 						values[:value] = sample.heartRate;
 					}
 				}
-				values[:icon] = ICON_HEART_FULL;
+				values[:icon] = ICON_HEART_EMPTY;
 				break;
 			case DATA_TYPE_BATTERY:
-				var batteryLevel = Math.floor(System.getSystemStats().battery);
-				values[:value] = batteryLevel;
+				var batteryLevel = System.getSystemStats().battery;
+				values[:value] = Math.floor(batteryLevel);
+				values[:max] = 100;
 				values[:text] = values[:value].format("%.0f");
 				if (batteryLevel > 85) {
 					values[:icon] = ICON_BATTERY_FULL;
@@ -396,10 +425,15 @@ class RaVelFaceView extends WatchUi.WatchFace {
 					values[:icon] = ICON_BATTERY_HALF;
 				}
 				else { 
-					values[:icon] = batteryLevel > 10 ? ICON_BATTERY_QUARTER : ICON_BATTERY_EMPTY;
-					if (batteryLevel < 5 || System.getSystemStats().batteryInDays <= 1) {
-						values[:color] = $.gTheme.WarnColor;
-						values[:iconColor] = $.gTheme.WarnColor;
+					values[:icon] = batteryLevel > 15 ? ICON_BATTERY_QUARTER : ICON_BATTERY_EMPTY;
+
+					if (batteryLevel < 10 || System.getSystemStats().batteryInDays < 1) {
+						values[:valueColor] = $.gTheme.ErrorColor;
+						values[:burnProtection] = BURN_PROTECTION_SHOW_ICON;
+					}
+					else if (batteryLevel < 15 || System.getSystemStats().batteryInDays < 2) {
+						values[:valueColor] = $.gTheme.WarnColor;
+						values[:burnProtection] = BURN_PROTECTION_SHOW_ICON;
 					}
 				}
 				break;
@@ -410,6 +444,7 @@ class RaVelFaceView extends WatchUi.WatchFace {
 					var sample = it.next();
 					if (sample != null) {
 						values[:value] = sample.data;
+						values[:max] = 100;
 						values[:text] = values[:value].format("%.0f");
 						values[:icon] = ICON_BODY_BATTERY;
 					}
@@ -421,6 +456,7 @@ class RaVelFaceView extends WatchUi.WatchFace {
 					var sample = it.next();
 					if (sample != null) {
 						values[:value] = sample.data;
+						values[:max] = 100;
 						values[:text] = values[:value].format("%.0f");
 						values[:icon] = ICON_STRESS_LEVEL;
 					}
@@ -430,6 +466,8 @@ class RaVelFaceView extends WatchUi.WatchFace {
 				if (info has :respirationRate and info.respirationRate  != null) {
 					values[:value] = info.respirationRate ;
 				}
+				/*values[:value] = $.gTheme.ForeColor;
+				values[:text] = values[:value].format("%2X");*/
 				values[:icon] = ICON_RESPIRATION;
 				break;
 
@@ -437,13 +475,13 @@ class RaVelFaceView extends WatchUi.WatchFace {
 				var now = Gregorian.info(Time.now(), Time.FORMAT_SHORT);
 
 				var dow = [
-						"Sun",
-						"Mon",
-						"Tue",
-						"Wed",
-						"Thu",
-						"Fri",
-						"Sat"
+						"Su",
+						"Mo",
+						"Tu",
+						"We",
+						"Th",
+						"Fr",
+						"Sa"
 						][now.day_of_week - 1];
 				//dow = dow.substring(0,2);
 
@@ -462,95 +500,56 @@ class RaVelFaceView extends WatchUi.WatchFace {
 		return values;
 	}
 
-	static function getValuesForGoalType(type) {
-
-		var values = null;
-
-		var info = ActivityMonitor.getInfo();
-
-		switch(type) {
-			case GOAL_TYPE_STEPS:
-				values = self.getValuesForDataType(DATA_TYPE_STEPS);
-				values[:max] = info.stepGoal;
-				break;
-
-			case GOAL_TYPE_FLOORS_CLIMBED:
-				if (info has :floorsClimbed) {
-					values = self.getValuesForDataType(DATA_TYPE_FLOORS_CLIMBED);
-					values[:max] = info.floorsClimbedGoal;
-				}
-				break;
-
-			case GOAL_TYPE_ACTIVE_MINUTES:
-				if (info has :activeMinutesWeek) {
-					values = self.getValuesForDataType(DATA_TYPE_ACTIVE_MINUTES);
-					values[:max] = 100;
-				}
-				break;
-
-			case GOAL_TYPE_BATTERY:
-				values = self.getValuesForDataType(DATA_TYPE_BATTERY);
-				values[:max] = 100;
-				break;
-
-			case GOAL_TYPE_BODY_BATTERY:
-				values = self.getValuesForDataType(DATA_TYPE_BODY_BATTERY);
-				values[:max] = 100;
-				break;
-
-			case GOAL_TYPE_STRESS_LEVEL:
-				values = self.getValuesForDataType(DATA_TYPE_STRESS_LEVEL);
-				values[:max] = 100;
-				break;
-
-		}
-
-		if ( values == null) {
-			values = { :isValid => false}; 
-		}
-
-		return values;
-	}
-
-
-	private function updateMeters() {
-		var leftValues = getValuesForGoalType(self.mLeftMeterType);
-		self.mDrawables[:LeftGoalMeter].setValues(leftValues[:value], leftValues[:max], /* isOff */ self.mLeftMeterType == GOAL_TYPE_OFF || self.mBurnProtection);
-
-		var rightValues = getValuesForGoalType(self.mRightMeterType);
-		self.mDrawables[:RightGoalMeter].setValues(rightValues[:value], rightValues[:max], /* isOff */ self.mRightMeterType == GOAL_TYPE_OFF || self.mBurnProtection);
-	}
-
-	private function updateGauges() {
-		if (self.mDrawables[:LeftGauge]) {
-			var leftValues = getValuesForGoalType(self.mLeftGaugeType);
-			var gauge = self.mDrawables[:LeftGauge];
-			gauge.setY( mTime.getTopFieldY() );
-			gauge.setValues(leftValues, /* isOff */ self.mLeftGaugeType == GOAL_TYPE_OFF || self.mBurnProtection);
-		}
-
-		if (self.mDrawables[:RightGauge]) {
-			var rightValues = getValuesForGoalType(self.mRightGaugeType);
-			var gauge = self.mDrawables[:RightGauge];
-			gauge.setY( mTime.getTopFieldY() );
-			gauge.setValues(rightValues, /* isOff */ self.mRightGaugeType == GOAL_TYPE_OFF || self.mBurnProtection);
-		}
-	}
-
-	private function updateSecondsVisibility() {
-		var show = true;
-		if (self.mSecondsDisplayMode == 2 && System.getDeviceSettings().doNotDisturb) {
-			show = false;
-		}
-		else if (self.mSecondsDisplayMode == 0) {
-			show = false;
-		}
-
-		if ( self.mTime != null) {
-			if (self.mTime.setHideSeconds(!show)) {
-				WatchUi.requestUpdate();
+	private function updateDrawables() {
+		var sleepMode = self._sleepTimeTracker.getSleepMode();
+		/* meters */
+		if (!self.mBurnProtection && !sleepMode ) {
+			for (var i=0; i < 2; i++) {
+				var values = self.getValuesForDataType(self.mMeterTypes[i]);
+				self.mMeters[i].setValues(values[:isValid] ? values : null);
 			}
 		}
+		else {
+			self.mMeters[0].setValues( null );
+			self.mMeters[1].setValues( null );
+		}
+
+		/* gauges */
+		for (var i=0; i < 2; i++) {
+			if (self.mGauges[i]) {
+				var values = self.getValuesForDataType(self.mGaugeTypes[i]);
+
+				var displayType = GAUGE_DISPLAY_OFF;
+				if (values[:isValid]) {
+					if (self.mBurnProtection || sleepMode) {
+						displayType = values[:burnProtection] == BURN_PROTECTION_SHOW_ICON ? GAUGE_DISPLAY_ICON : GAUGE_DISPLAY_OFF;
+					}
+					else {
+						displayType = GAUGE_DISPLAY_ALL;
+					}
+				}
+
+				if (displayType == GAUGE_DISPLAY_ALL && self.mGaugeTypes[i] == DATA_TYPE_NOTIFICATIONS) {
+					displayType = GAUGE_DISPLAY_ICON;
+					if (values[:value] > 0 && values[:valueColor] == null) {
+						values[:valueColor] = $.gTheme.ForeColor;
+					}
+				}
+
+				self.mGauges[i].setValues(values, displayType);
+			}
+		}
+
+		/* time */
+		var show = true;
+		if (self.mSecondsDisplayMode == 2) {
+			if (System.getDeviceSettings().doNotDisturb || _sleepTimeTracker.getSleepMode() ) {
+				show = false;
+			}
+			self.mTime.setHideSeconds(!show);
+		}
+	
+
 	}
 
 }

@@ -47,7 +47,6 @@
 	
 	<string id="ShowAlarmIconTitle">Show alarm icon</string>
 	<string id="ShowDontDisturbIconTitle">Show do not disturb icon</string>
-	<string id="ShowSleepModeIconTitle">Show sleep mode icon</string>
 	<string id="ShowNotificationIconTitle">Show notification icon</string>
 
 </strings>

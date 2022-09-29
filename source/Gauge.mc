@@ -5,16 +5,29 @@ import Toybox.Lang;
 using Toybox.WatchUi;
 using Toybox.System;
 
+enum {
+	GAUGE_DISPLAY_OFF,
+	GAUGE_DISPLAY_ICON,
+	GAUGE_DISPLAY_ALL,
+}
+
+
 class Gauge extends WatchUi.Drawable 
 {
+	const GAUGE_FULL_DEG = 360;
+	const GAUGE_START_DEG = 90;
+
 	private var _radius;
 	private var _stroke;
 
 	private var _iconFont;
 
 	private var _degrees = 0;
-	private var _off = true;
+	private var _displayType = GAUGE_DISPLAY_OFF;
 	private var _values;
+
+	private var _offsetX = 0;
+	private var _offsetY = 0;
 
 	function initialize(params) {
 		Drawable.initialize(params);
@@ -31,56 +44,68 @@ class Gauge extends WatchUi.Drawable
 		self.locY = y;
 	}
 
+	function setXYOffset(x, y) {
+		self._offsetX = x;
+		self._offsetY = y;
+	}
+
 	function setIconFont(iconFont) {
 		self._iconFont = iconFont;
 	}
 
-	function setValues(values, isOff) {
-		self._off = isOff;
-		if (!isOff) {
-			var val = values[:value] * 1.0 / values[:max];
-			if (val<0) { val = 0;}
-			else if (val >= 0.99999) { val = 1;}
-			self._degrees = 270 * val;
+	function setValues(values, displayType) {
+		self._displayType = displayType;
+		if (self._displayType != GAUGE_DISPLAY_OFF) {
+			if (values[:max] != null) {
+				var val = values[:value] * 1.0 / values[:max];
+				if (val<0) { val = 0;}
+				else if (val >= 0.99999) { val = 1;}
+				self._degrees = GAUGE_FULL_DEG * val;
+			}
+			else {
+				self._displayType = GAUGE_DISPLAY_ICON;
+			}
 			self._values = values;
 		}
 	}
 
 	function draw(dc) {
-		if (self._off) {
+		if (self._displayType == GAUGE_DISPLAY_OFF) {
 			return;
 		}
 
+		var x = self.locX + self._offsetX;
+		var y = self.locY + self._offsetY;
+
 		if ( self._values[:icon] != null ) {
-			dc.setColor( self._values[:iconColor]!=null ? self._values[:iconColor] : $.gTheme.IconColor, Graphics.COLOR_TRANSPARENT);
+			dc.setColor( self._values[:valueColor]!=null ? self._values[:valueColor] : $.gTheme.IconColor, Graphics.COLOR_TRANSPARENT);
 
 			dc.drawText(
-				self.locX,
-				self.locY, 
+				x, y, 
 				self._iconFont, self._values[:icon], Graphics.TEXT_JUSTIFY_CENTER|Graphics.TEXT_JUSTIFY_VCENTER);
 		}
 
 
-		dc.setColor($.gTheme.LowKeyColor, Graphics.COLOR_TRANSPARENT);
+		if (self._displayType == GAUGE_DISPLAY_ALL) {
+			dc.setColor($.gTheme.LowKeyColor, Graphics.COLOR_TRANSPARENT);
 
-		dc.setPenWidth( self._stroke );
-		dc.drawArc( 
-			self.locX,
-			self.locY, 
-			self._radius, 
-			Graphics.ARC_CLOCKWISE , 225, -45
-			);
-
-
-		if ( self._degrees > 0) {
-			dc.setColor( self._values[:color]!=null ? self._values[:color] : $.gTheme.FullMeterColor, Graphics.COLOR_TRANSPARENT);
 			dc.setPenWidth( self._stroke );
 			dc.drawArc( 
-				self.locX,
-				self.locY, 
+				x, y, 
 				self._radius, 
-				Graphics.ARC_CLOCKWISE , 225, 225 - self._degrees
+				Graphics.ARC_CLOCKWISE , GAUGE_START_DEG, GAUGE_START_DEG - GAUGE_FULL_DEG
 				);
+
+
+			if ( self._degrees > 0) {
+				dc.setColor( self._values[:valueColor]!=null ? self._values[:valueColor] : $.gTheme.FullMeterColor, Graphics.COLOR_TRANSPARENT);
+				dc.setPenWidth( self._stroke );
+				dc.drawArc( 
+					x, y, 
+					self._radius, 
+					Graphics.ARC_CLOCKWISE , GAUGE_START_DEG, GAUGE_START_DEG - self._degrees
+					);
+			}
 		}
 	}
 }

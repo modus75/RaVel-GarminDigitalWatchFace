@@ -31,20 +31,11 @@ class ThickThinTime extends Ui.Drawable {
 	private var mLastBurnOffsets = [0,0];
 	private var mLastBurnOffsetsChangedMinute = 0;
 
-	private var AM_PM_X_OFFSET = 2;
-
-	// #10 Adjust position of seconds to compensate for hidden hours leading zero.
-	private var mSecondsClipXAdjust = 0;
-
 	function initialize(params) {
 		Drawable.initialize(params);
 
 		if (params[:adjustY] != null) {
 			self.mAdjustY = params[:adjustY];
-		}
-
-		if (params[:amPmOffset] != null) {
-			AM_PM_X_OFFSET = params[:amPmOffset];
 		}
 
 		self.mSecondsY = params[:secondsY];
@@ -81,7 +72,7 @@ class ThickThinTime extends Ui.Drawable {
 	}
 
 	function getSecondsX() {
-		return self.mSecondsClipRectX + self.mSecondsClipXAdjust;
+		return self.mSecondsClipRectX;
 	}
 
 	function getSecondsY() {
@@ -160,14 +151,12 @@ class ThickThinTime extends Ui.Drawable {
 		if (isPartialUpdate) {
 
 			dc.setClip(
-				self.mSecondsClipRectX + self.mSecondsClipXAdjust,
+				self.mSecondsClipRectX,
 				self.mSecondsY - self.mSecondsClipRectHeight/2,
 				self.mSecondsClipRectWidth,
 				self.mSecondsClipRectHeight
 			);
 
-			// Can't optimise setting colour once, at start of low power mode, at this goes wrong on real hardware: alternates
-			// every second with inverse (e.g. blue text on black, then black text on blue).
 			dc.setColor($.gTheme.ForeColor, $.gTheme.BackgroundColor );
 			//dc.setColor($.gTheme.ForeColor, Graphics.COLOR_RED ); // debug
 
@@ -175,13 +164,12 @@ class ThickThinTime extends Ui.Drawable {
 			dc.clear();
 
 		} else {
-			// Drawing will not be clipped, so ensure background is transparent in case font height overlaps with another drawable.
 			dc.setColor($.gTheme.ForeColor, Graphics.COLOR_TRANSPARENT);
 			//dc.setColor($.gTheme.ForeColor, Graphics.COLOR_RED); // debug
 		}
 
 		dc.drawText(
-			self.mSecondsClipRectX + self.mSecondsClipXAdjust,
+			self.mSecondsClipRectX,
 			self.mSecondsY,
 			self.mSecondsFont,
 			seconds,
@@ -228,7 +216,7 @@ class ThickThinTime extends Ui.Drawable {
 			self.mMinutesAdjustX = 10;
 		}
 
-		if (System.getDeviceSettings().screenWidth > 360){
+		if (System.getDeviceSettings().screenWidth > 400){
 			self.mHoursAdjustX -= 5;
 			self.mMinutesAdjustX += 5;
 		}

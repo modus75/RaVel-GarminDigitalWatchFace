@@ -11,15 +11,20 @@
 	<property id="BottomLeftDataType" type="number">1</property>
 	<property id="BottomDataType" type="number">4</property>
 	
-	<property id="LeftGoalType" type="number">0</property>
-	<property id="RightGoalType" type="number">1</property>
+	<property id="LeftGoalType" type="number">1</property>
+	<property id="RightGoalType" type="number">2</property>
 	<property id="GoalMeterStyle" type="number">0</property>
 
 	<property id="LeftGaugeType" type="number">0</property>
-	<property id="RightGaugeType" type="number">1</property>
+	<property id="RightGaugeType" type="number">6</property>
 
 	<property id="ShowAlarmIcon" type="boolean">true</property>
 	<property id="ShowDontDisturbIcon" type="boolean">true</property>
-	<property id="ShowSleepModeIcon" type="boolean">false</property>
 	<property id="ShowNotificationIcon" type="boolean">false</property>
+
+	<property id="LightDimmerStartTime" type="number">2100</property>
+	<property id="LightDimmerEndTime" type="number">730</property>
+
+	<property id="LightDimmerWEEndTime" type="number">830</property>
+
 </properties>
