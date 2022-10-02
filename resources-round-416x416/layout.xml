@@ -1,17 +1,19 @@
-<resources>	
+<resources>
+
+	<jsonData id="ravelOptions">{"displayMeterIcons":true}</jsonData>
 
 	<font id="TimeFont" filename="../resources/fonts/ArialNarrow-216-Bold.fnt" antialias="true"/>
 	<font id="TimeSmallFont" filename="../resources/fonts/ArialNarrow-204-Bold.fnt" antialias="true"/>
 
 	<font id="TimeFontOutline" filename="../resources/fonts/ArialNarrow-216-Bold-Outline.fnt" antialias="true"/>
 	<font id="TimeSmallFontOutline" filename="../resources/fonts/ArialNarrow-204-Bold-Outline.fnt" antialias="true"/>
-	
+
 	<font id="IconsFont" filename="../resources/fonts/connect32.fnt" antialias="true"/>
 
 	<layout id="WatchFace">
 		<drawable class="Background" />
-		
-	
+
+
 		<drawable id="LeftGoalMeter" class="GoalMeter">
 			<param name="side">:left</param>
 			<param name="stroke">10</param>

@@ -5,7 +5,7 @@ import Toybox.Time;
 import Toybox.Time.Gregorian;
 
 
-(:background :debug)
+(:debug)
 function TRACE(obj) {
 	var currentTime = Gregorian.info(Time.now(), Time.FORMAT_SHORT);
 
@@ -21,6 +21,6 @@ function TRACE(obj) {
 	System.println( Lang.format("$1$ $2$", [timestamp, obj]) );
 }
 
-(:background :release)
+(:release)
 function TRACE(obj) {
 }

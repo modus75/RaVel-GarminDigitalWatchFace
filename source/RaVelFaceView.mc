@@ -57,7 +57,7 @@ class RaVelFaceView extends WatchUi.WatchFace {
 	private var mLastBurnOffsetsChangedMinute = 0;
 
 	private var _lightDimmer;
-	private var _sleepTimeTracker as SleepTimeTracker;
+	private var _sleepTimeTracker;
 
     function initialize() {
         WatchFace.initialize();
@@ -66,6 +66,14 @@ class RaVelFaceView extends WatchUi.WatchFace {
 
     function onLayout(dc as Dc) as Void {
         setLayout(Rez.Layouts.WatchFace(dc));
+
+		var ravelOptions;
+		if (Rez.JsonData has :ravelOptions) {
+			ravelOptions = Application.loadResource(Rez.JsonData.ravelOptions);
+		}
+		else {
+			ravelOptions = {};
+		}
 
         mIconsFont = WatchUi.loadResource(Rez.Fonts.IconsFont);
         mTime = View.findDrawableById("Time");
@@ -76,15 +84,20 @@ class RaVelFaceView extends WatchUi.WatchFace {
 		mGauges[0] = View.findDrawableById("LeftGauge");
 		mGauges[1] = View.findDrawableById("RightGauge");
 
-		if (System.getDeviceSettings().screenWidth > 400) {
-			self._lightDimmer = new TimeBasedDimmer();
+
+		if (ravelOptions["displayMeterIcons"]) {
 			mMeters[0].setIconFont(mIconsFont);
 			mMeters[1].setIconFont(mIconsFont);
 		}
-		else {
-			self._lightDimmer = new LightDimmer();
+
+		if ( System.getDeviceSettings() has :requiresBurnInProtection && System.getDeviceSettings().requiresBurnInProtection) {
+			self._lightDimmer = new TimeBasedLightDimmer(); // should test for amoled
+			self._sleepTimeTracker = new SleepTimeTracker();
 		}
-		_sleepTimeTracker = new SleepTimeTracker();
+		else {
+			self._lightDimmer = new NullLightDimmer();
+			self._sleepTimeTracker = new NullSleepTimeTracker();
+		}
 
 		for (var i=0 ;i<2 ; i++) {
 			if (mGauges[i]) {
@@ -100,12 +113,17 @@ class RaVelFaceView extends WatchUi.WatchFace {
     function onUpdate(dc as Dc) as Void {
     	//System.println("onUpdate");
 
+		if (!self._sleepTimeTracker.onUpdate()) {
+			dc.setColor(Graphics.COLOR_TRANSPARENT, $.gTheme.BackgroundColor);
+			dc.clear();
+			return;
+		}
+
 		// Clear any partial update clipping.
 		dc.clearClip();
 
 		var now = System.getClockTime();
 		self._lightDimmer.check( now );
-		self._sleepTimeTracker.onUpdate();
 
 		if (self.mBurnProtection && self.mLastBurnOffsetsChangedMinute !=  now.min) {
 			self.mLastBurnOffsets = [Math.rand() % 16 - 8, Math.rand() % 16 - 8];
@@ -543,7 +561,7 @@ class RaVelFaceView extends WatchUi.WatchFace {
 		/* time */
 		var show = true;
 		if (self.mSecondsDisplayMode == 2) {
-			if (System.getDeviceSettings().doNotDisturb || _sleepTimeTracker.getSleepMode() ) {
+			if (System.getDeviceSettings().doNotDisturb ||sleepMode ) {
 				show = false;
 			}
 			self.mTime.setHideSeconds(!show);

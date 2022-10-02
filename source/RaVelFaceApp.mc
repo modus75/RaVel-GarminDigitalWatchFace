@@ -14,11 +14,11 @@ class RaVelFaceApp extends Application.AppBase {
 	}
 
 	function onStart(state as Dictionary?) as Void {
-		TRACE("App: onStart");
+		// Background service method. Don't access anything
 	}
 
 	function onStop(state as Dictionary?) as Void {
-		TRACE("App: onStop");
+		// Background service method. Don't access anything
 	}
 
 	function getInitialView() as Array<Views or InputDelegates>? {
@@ -66,17 +66,14 @@ class RaVelServiceDelegate extends System.ServiceDelegate {
 	}
 
 	public function onSleepTime() as Void {
-		TRACE("ServiceDelegate: onSleepTime");
 		Background.exit(0);
 	}
 
 	public function onWakeTime() as Void {
-		TRACE("ServiceDelegate: onWakeTime");
 		Background.exit(1);
 	}
 
 	public function onSteps() as Void {
-		TRACE("ServiceDelegate: onSteps");
 		Background.exit(2);
 	}
 }

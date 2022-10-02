@@ -1,10 +1,8 @@
 import Toybox.Application;
 import Toybox.Time;
 
-class LightDimmer
+class NullLightDimmer
 {
-	protected var _dimmerActive = false;
-
 	function check( time ) as Boolean {
 		return false;
 	}
@@ -14,8 +12,10 @@ class LightDimmer
 }
 
 
-class TimeBasedDimmer extends LightDimmer
+class TimeBasedLightDimmer extends NullLightDimmer
 {
+	private var _dimmerActive = false;
+
 	private var _startTimes = new [7];
 	private var _endTimes = new [7];
 
@@ -23,7 +23,7 @@ class TimeBasedDimmer extends LightDimmer
 	private var _currentDayOfWeekCheckHour = -1;
 
 	function initialize() {
-		LightDimmer.initialize();
+		NullLightDimmer.initialize();
 	}
 
 	function check( now ) as Boolean {
