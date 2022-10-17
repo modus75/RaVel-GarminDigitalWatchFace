@@ -42,7 +42,7 @@ class TimeBasedLightDimmer extends NullLightDimmer
 		if (self._dimmerActive != active) {
 			self._dimmerActive = active;
 			TRACE("Dimmer set to " + active.toString() );
-			$.gTheme.setLightFactor(self._dimmerActive ? 0.75 : 1.0);
+			$.gTheme.setLightFactor(self._dimmerActive ? 0.8 : 1.0);
 			return true;
 		}
 		return false;

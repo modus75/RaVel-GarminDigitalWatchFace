@@ -6,6 +6,7 @@ import Toybox.System;
 using Toybox.WatchUi;
 using Toybox.Time.Gregorian;
 using Toybox.SensorHistory;
+using Toybox.Sensor;
 
 
 var gTheme;
@@ -24,6 +25,7 @@ enum /* DATA_TYPES */ {
 	DATA_TYPE_STRESS_LEVEL = 8,
 	DATA_TYPE_RESPIRATION = 9,
 	DATA_TYPE_DATE = 16,
+	DATA_TYPE_DEBUG = 99,
 }
 
 
@@ -59,13 +61,13 @@ class RaVelFaceView extends WatchUi.WatchFace {
 	private var _lightDimmer;
 	private var _sleepTimeTracker;
 
-    function initialize() {
-        WatchFace.initialize();
+	function initialize() {
+		WatchFace.initialize();
 		$.gTheme = new Theme();
-    }
+	}
 
-    function onLayout(dc as Dc) as Void {
-        setLayout(Rez.Layouts.WatchFace(dc));
+	function onLayout(dc as Dc) as Void {
+		setLayout(Rez.Layouts.WatchFace(dc));
 
 		var ravelOptions;
 		if (Rez.JsonData has :ravelOptions) {
@@ -75,8 +77,8 @@ class RaVelFaceView extends WatchUi.WatchFace {
 			ravelOptions = {};
 		}
 
-        mIconsFont = WatchUi.loadResource(Rez.Fonts.IconsFont);
-        mTime = View.findDrawableById("Time");
+		mIconsFont = WatchUi.loadResource(Rez.Fonts.IconsFont);
+		mTime = View.findDrawableById("Time");
 
 		mMeters[0] = View.findDrawableById("LeftGoalMeter");
 		mMeters[1] = View.findDrawableById("RightGoalMeter");
@@ -106,12 +108,12 @@ class RaVelFaceView extends WatchUi.WatchFace {
 			}
 		}
 
-        self.onSettingsChanged();
+		self.onSettingsChanged();
 
-    }
+	}
 
-    function onUpdate(dc as Dc) as Void {
-    	//System.println("onUpdate");
+	function onUpdate(dc as Dc) as Void {
+		//System.println("onUpdate");
 
 		if (!self._sleepTimeTracker.onUpdate()) {
 			dc.setColor(Graphics.COLOR_TRANSPARENT, $.gTheme.BackgroundColor);
@@ -137,10 +139,10 @@ class RaVelFaceView extends WatchUi.WatchFace {
 
 		updateDrawables();
 
-        // Call the parent onUpdate function to redraw the layout
-        View.onUpdate(dc);
+		// Call the parent onUpdate function to redraw the layout
+		View.onUpdate(dc);
 
-        var values;
+		var values;
 
 		/* top data above clock*/
 		if (!self.mBurnProtection) {
@@ -307,7 +309,12 @@ class RaVelFaceView extends WatchUi.WatchFace {
 		//TRACE("onExitSleep");
 		_sleepTimeTracker.onExitSleep();
 		self.mBurnProtection = false;
-		self.mTime.setBurnProtection(self.mBurnProtection);
+		for (var i=0; i < 2; i++) {
+			if (self.mGauges[i]) {
+				self.mGauges[i].setXYOffset(0,0);
+			}
+		}
+		self.mTime.exitBurnProtection();
 	}
 
 	function onEnterSleep() as Void {
@@ -317,20 +324,21 @@ class RaVelFaceView extends WatchUi.WatchFace {
 			self.mBurnProtection = true;
 			self.mLastBurnOffsetsChangedMinute = System.getClockTime().min;
 			self.mLastBurnOffsets = [0,0];
-			self.mTime.setBurnProtection(self.mBurnProtection);
+			self.mTime.enterBurnProtection();
 		}
 	}
 
 	function onBackgroundSleepTime() as Void {
-		_sleepTimeTracker.onBackgroundSleepTime();
+		self._sleepTimeTracker.onBackgroundSleepTime();
 	}
 
 	function onBackgroundWakeTime() as Void {
-		_sleepTimeTracker.onBackgroundWakeTime();
+		self._sleepTimeTracker.onBackgroundWakeTime();
 	}
 
 	function onSettingsChanged() {
 		self._lightDimmer.onSettingsChanged();
+		self._sleepTimeTracker.onSettingsChanged();
 		$.gTheme.onSettingsChanged();
 
 		var theme = getApp().getProperty("Theme");
@@ -412,7 +420,7 @@ class RaVelFaceView extends WatchUi.WatchFace {
 					values[:text] = "-";
 					values[:burnProtection] = BURN_PROTECTION_SHOW_ICON;
 					values[:valueColor] = $.gTheme.WarnColor;
-					values[:icon] = ICON_BLUETOOTH_EMPTY;
+					values[:icon] = ICON_PHONE_DISCONNECTED;
 				}
 				break;
 			case DATA_TYPE_HEART_RATE:
@@ -442,7 +450,7 @@ class RaVelFaceView extends WatchUi.WatchFace {
 				else if (batteryLevel > 35) {
 					values[:icon] = ICON_BATTERY_HALF;
 				}
-				else { 
+				else {
 					values[:icon] = batteryLevel > 15 ? ICON_BATTERY_QUARTER : ICON_BATTERY_EMPTY;
 
 					if (batteryLevel < 10 || System.getSystemStats().batteryInDays < 1) {
@@ -506,6 +514,8 @@ class RaVelFaceView extends WatchUi.WatchFace {
 				values[:value] = dow + " " + now.day.format("%d");
 				break;
 
+			case DATA_TYPE_DEBUG:
+				break;
 		}
 
 		if (values[:value]==null) {
@@ -566,7 +576,7 @@ class RaVelFaceView extends WatchUi.WatchFace {
 			}
 			self.mTime.setHideSeconds(!show);
 		}
-	
+
 
 	}
 

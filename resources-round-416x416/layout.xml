@@ -2,11 +2,19 @@
 
 	<jsonData id="ravelOptions">{"displayMeterIcons":true}</jsonData>
 
-	<font id="TimeFont" filename="../resources/fonts/ArialNarrow-216-Bold.fnt" antialias="true"/>
-	<font id="TimeSmallFont" filename="../resources/fonts/ArialNarrow-204-Bold.fnt" antialias="true"/>
+	<font id="TimeFont" filename="../resources/fonts/ArialNarrow-208-Bold.fnt" antialias="true"/>
+	<font id="TimeFont_LoPower" filename="../resources/fonts/ArialNarrow-208.fnt" antialias="true"/>
+	<font id="TimeFont_LoPower2" filename="../resources/fonts/ArialNarrow-208-Outline.fnt" antialias="true"/>
 
-	<font id="TimeFontOutline" filename="../resources/fonts/ArialNarrow-216-Bold-Outline.fnt" antialias="true"/>
-	<font id="TimeSmallFontOutline" filename="../resources/fonts/ArialNarrow-204-Bold-Outline.fnt" antialias="true"/>
+	<font id="TimeSmallFont" filename="../resources/fonts/ArialNarrow-192-Bold.fnt" antialias="true"/>
+	<font id="TimeSmallFont_LoPower" filename="../resources/fonts/ArialNarrow-192-Less1.fnt" antialias="true"/>
+	<font id="TimeSmallFont_LoPower2" filename="../resources/fonts/ArialNarrow-192-Outline.fnt" antialias="true"/>
+
+	<!-- <font id="TimeSmallFont" filename="../resources/fonts/HalvarEng-228-e-Regular.fnt" antialias="true"/>
+	<font id="TimeSmallFont_LoPower" filename="../resources/fonts/HalvarEng-228-d-Light.fnt" antialias="true"/>
+	<font id="TimeSmallFont_LoPower2" filename="../resources/fonts/HalvarEng-228-c-Thin.fnt" antialias="true"/>
+	<font id="TimeSmallFont_LoPower3" filename="../resources/fonts/HalvarEng-228-a-Hairline.fnt" antialias="true"/> -->
+
 
 	<font id="IconsFont" filename="../resources/fonts/connect32.fnt" antialias="true"/>
 
@@ -41,7 +49,7 @@
 		</drawable>
 
 		<drawable id="Time" class="ThickThinTime">
-			<param name="adjustY">-22</param> <!-- y offset from screen center -->
+			<param name="adjustY">-20</param> <!-- y offset from screen center -->
 
 			<!-- seconds positioning -->
 			<param name="secondsX">280</param>

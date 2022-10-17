@@ -4,7 +4,7 @@
 	
 	<property id="HoursFontType" type="boolean">true</property>
 	<property id="MinutesFontType" type="boolean">false</property>
-    <property id="SecondsDisplayMode" type="number">1</property>
+    <property id="SecondsDisplayMode" type="number">2</property>
 
 	<property id="TopDataType" type="number">16</property>
 	
@@ -22,9 +22,10 @@
 	<property id="ShowDontDisturbIcon" type="boolean">true</property>
 	<property id="ShowNotificationIcon" type="boolean">false</property>
 
-	<property id="LightDimmerStartTime" type="number">2100</property>
-	<property id="LightDimmerEndTime" type="number">730</property>
+	<property id="LightDimmerStartTime" type="number">2030</property>
+	<property id="LightDimmerEndTime" type="number">745</property>
 
-	<property id="LightDimmerWEEndTime" type="number">830</property>
+	<property id="LightDimmerWEEndTime" type="number">930</property>
 
+	<property id="AODPowerSaver" type="number">1</property>
 </properties>

@@ -28,10 +28,12 @@ class RaVelFaceApp extends Application.AppBase {
 			Background.registerForSleepEvent();
 			Background.registerForWakeEvent();
 			Background.registerForStepsEvent();
-			TRACE("App: getSleepEventRegistered=" + Background.getSleepEventRegistered().toString() );  
+			if (!Background.getSleepEventRegistered()) {
+				TRACE("[W] App: getSleepEventRegistered returns false");
+			}
 		}
 		else {
-			TRACE("App: no ServiceDelegate");
+			TRACE("[E] App: no ServiceDelegate");
 		}
 
 		mView = new RaVelFaceView();
@@ -52,7 +54,7 @@ class RaVelFaceApp extends Application.AppBase {
 		if (data==0) {
 			mView.onBackgroundSleepTime();
 		}
-		else {
+		else if (data==1){
 			mView.onBackgroundWakeTime();
 		}
 	 }

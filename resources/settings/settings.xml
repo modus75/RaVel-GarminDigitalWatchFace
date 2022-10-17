@@ -41,6 +41,7 @@
 			<listEntry value="8">@Strings.StressLevel</listEntry>
 			<listEntry value="9">@Strings.Respiration</listEntry>
 			<listEntry value="16">@Strings.Date</listEntry>
+			<listEntry value="99">Debug</listEntry>
 		</settingConfig>
 	</setting>
 
@@ -156,5 +157,15 @@
 	<setting propertyKey="@Properties.LightDimmerWEEndTime" title="Dim end time weekend (hhmm)">
 		<settingConfig type="numeric" min="0" max="2359"/>
 	</setting>
+
+	<setting propertyKey="@Properties.AODPowerSaver" title="AOD Power saving">
+		<settingConfig type="list">
+			<listEntry value="0">None</listEntry>
+			<listEntry value="1">Low</listEntry>
+			<listEntry value="2">Medium</listEntry>
+			<listEntry value="3">High</listEntry>
+		</settingConfig>
+	</setting>
+
 
 </settings>

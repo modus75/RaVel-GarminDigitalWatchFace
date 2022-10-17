@@ -16,7 +16,6 @@ const ICON_FLOORS_UP		= "\ue629";
 const ICON_HEART_EMPTY		= "\ue802";
 
 const ICON_BLUETOOTH_EMPTY	= "\ue903";
-const ICON_BLUETOOTH_FULL	= "\ue903";
 const ICON_ACTIVE_MINUTES	= "\ue904";
 const ICON_STRESS_LEVEL		= "\ue911";
 
@@ -26,8 +25,8 @@ const ICON_BATTERY_QUARTER	= "\uf137";
 const ICON_BATTERY_HALF		= "\uf138";
 const ICON_BATTERY_3QUARTERS= "\uf139";
 const ICON_BODY_BATTERY		= "\uf13c";
-//const ICON_NOTIFICATIONS_FULL="\uf15e";
-const ICON_HRV_STATUS		= "\uf167";
+const ICON_PHONE_DISCONNECTED	= "\uf14b";
+const ICON_HRV_STATUS		= "\uf166";
 const ICON_PULSE_OX			= "\uf187";
 const ICON_RESPIRATION		= "\uf188";
 const ICON_NOTIFICATIONS_EMPTY= "\uf18b";

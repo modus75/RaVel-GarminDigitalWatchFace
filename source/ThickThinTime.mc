@@ -2,10 +2,53 @@ using Toybox.WatchUi as Ui;
 using Toybox.System as Sys;
 using Toybox.Application as App;
 
+class LowPowerProfile {
+	public var HourFontDowngradeDelay as Number;
+	public var MinuteFontDowngradeDelay as Number;
+
+	public var HourAlphaParams = [0, 0, 0];
+	public var MinuteAlphaParams = [0, 0, 0];
+
+	public function setFontDowngradeDelay(hours, minutes) {
+		HourFontDowngradeDelay = hours;
+		MinuteFontDowngradeDelay = minutes;
+	}
+
+	public function setHourAlpha(mult, offset, cap) {
+		self.HourAlphaParams = [mult, offset, cap];
+	}
+	public function setMinuteAlpha(mult, offset, cap) {
+		self.MinuteAlphaParams = [mult, offset, cap];
+	}
+
+	public function computeColor( alphaParams, x, originalColor) {
+		var factor = alphaParams[0] * x + alphaParams[1];
+		if (factor <= 0) {
+			return originalColor;
+		}
+		else 	if (factor > alphaParams[2]) {
+			factor = alphaParams[2];
+		}
+		factor = 1 - factor;
+		var r = Math.round( factor * ( (originalColor >> 16) & 0xff) ).toNumber();
+		var g = Math.round( factor * ( (originalColor >> 8) & 0xff) ).toNumber();
+		var b = Math.round( factor * ( originalColor & 0xff) ).toNumber();
+		return (r << 16)  + (g << 8) + b;
+	}
+}
+
 class ThickThinTime extends Ui.Drawable {
 
-	private var mHoursFont, mMinutesFont, mSecondsFont;
-	private var mHoursFontOutline, mMinutesFontOutline;
+	private var _largeFonts = [];
+	private var _smallFonts = [];
+
+	private var _hourFonts;
+	private var _minuteFonts;
+
+	private var _currentHourFont, _currentMinuteFont;
+	private var _currentHourColor, _currentMinuteColor;
+	
+	private var _aodPowerProfile = new LowPowerProfile();
 
 	// "y" parameter passed to drawText(), read from layout.xml.
 	private var mSecondsY;
@@ -27,9 +70,10 @@ class ThickThinTime extends Ui.Drawable {
 	private var mMinutesAdjustX;
 
 	private var mHideSeconds = false;
-	private var mBurnProtection = false;
-	private var mLastBurnOffsets = [0,0];
-	private var mLastBurnOffsetsChangedMinute = 0;
+	private var _burnProtection = false;
+	private var _lastBurnOffsets = [0,0];
+	private var _lastBurnOffsetsChangedTime;
+	private var _lastBurnProtectionTime;
 
 	function initialize(params) {
 		Drawable.initialize(params);
@@ -51,6 +95,34 @@ class ThickThinTime extends Ui.Drawable {
 			mLeftFieldAdjustX = params[:leftFieldAdjustX];
 		}
 
+		_largeFonts.add( Ui.loadResource(Rez.Fonts.TimeFont) );
+		if (Rez.Fonts has :TimeFont_LoPower) {
+			self._largeFonts.add( Ui.loadResource(Rez.Fonts.TimeFont_LoPower) );
+		}
+		else {
+			self._largeFonts.add( _largeFonts[0] );
+		}
+		if (Rez.Fonts has :TimeFont_LoPower2) {
+			self._largeFonts.add( Ui.loadResource(Rez.Fonts.TimeFont_LoPower2) );
+		}
+		if (Rez.Fonts has :TimeFont_LoPower3) {
+			self._largeFonts.add( Ui.loadResource(Rez.Fonts.TimeFont_LoPower3) );
+		}
+
+		_smallFonts.add( Ui.loadResource(Rez.Fonts.TimeSmallFont) );
+		if (Rez.Fonts has :TimeSmallFont_LoPower) {
+			self._smallFonts.add( Ui.loadResource(Rez.Fonts.TimeSmallFont_LoPower) );
+		}
+		else {
+			self._smallFonts.add( _smallFonts[0] );
+		}
+		if (Rez.Fonts has :TimeSmallFont_LoPower2) {
+			self._smallFonts.add( Ui.loadResource(Rez.Fonts.TimeSmallFont_LoPower2) );
+		}
+		if (Rez.Fonts has :TimeSmallFont_LoPower3) {
+			self._smallFonts.add( Ui.loadResource(Rez.Fonts.TimeSmallFont_LoPower3) );
+		}
+
 		onSettingsChanged();
 	}
 
@@ -65,10 +137,20 @@ class ThickThinTime extends Ui.Drawable {
 		return ret;
 	}
 
-	function setBurnProtection(burnProtection) {
-		self.mBurnProtection = burnProtection;
-		self.mLastBurnOffsetsChangedMinute = Sys.getClockTime().min;
-		self.mLastBurnOffsets = [0,0];
+
+	function enterBurnProtection() {
+		self._burnProtection = true;
+		self._lastBurnProtectionTime = Time.now().value();
+		self._lastBurnOffsetsChangedTime = self._lastBurnProtectionTime;
+		self._lastBurnOffsets = [0,0];
+		resetBurnProtectionStyles();
+	}
+
+	function exitBurnProtection() {
+		if (self._burnProtection) {
+			 self._burnProtection = false;
+			 resetBurnProtectionStyles();
+		}
 	}
 
 	function getSecondsX() {
@@ -103,34 +185,36 @@ class ThickThinTime extends Ui.Drawable {
 		var x = dc.getWidth() / 2;
 		var y = (dc.getHeight() / 2) + self.mAdjustY;
 		
-		if (self.mBurnProtection) {
-			if (self.mLastBurnOffsetsChangedMinute != clockTime.min) {
+		if (self._burnProtection) {
+			var now = Time.now().value();
+			if (self._lastBurnOffsetsChangedTime + 60 <= now) {
+				self.updateBurnProtectionStyles( now - self._lastBurnProtectionTime );
 				var offsets = [ -6, 0, 12, 18, 12, 0 ];
 				var burnInOffset = offsets[clockTime.min % offsets.size()] + (Toybox.Math.rand() % 6 - 3);
 
-				self.mLastBurnOffsets = [Toybox.Math.rand() % 12 - 6, burnInOffset];
-				self.mLastBurnOffsetsChangedMinute = clockTime.min;
+				self._lastBurnOffsets = [Toybox.Math.rand() % 12 - 6, burnInOffset];
+				self._lastBurnOffsetsChangedTime = now;
 			}
-			x += self.mLastBurnOffsets[0];
-			y += self.mLastBurnOffsets[1];
+			x += self._lastBurnOffsets[0];
+			y += self._lastBurnOffsets[1];
 		}
 
 		// Draw hours.
-		dc.setColor($.gTheme.HoursColor, Graphics.COLOR_TRANSPARENT);
+		dc.setColor( self._currentHourColor, Graphics.COLOR_TRANSPARENT);
 		dc.drawText(
 			x + self.mHoursAdjustX,
 			y,
-			self.mBurnProtection ? self.mHoursFontOutline : self.mHoursFont,
+			self._currentHourFont,
 			hours,
 			Graphics.TEXT_JUSTIFY_RIGHT | Graphics.TEXT_JUSTIFY_VCENTER
 		);
 
 		// Draw minutes.
-		dc.setColor($.gTheme.MinutesColor, Graphics.COLOR_TRANSPARENT);
+		dc.setColor( self._currentMinuteColor, Graphics.COLOR_TRANSPARENT);
 		dc.drawText(
 			x + self.mMinutesAdjustX,
 			y,
-			self.mBurnProtection ? self.mMinutesFontOutline : self.mMinutesFont,
+			self._currentMinuteFont,
 			minutes,
 			Graphics.TEXT_JUSTIFY_LEFT | Graphics.TEXT_JUSTIFY_VCENTER
 		);
@@ -141,7 +225,7 @@ class ThickThinTime extends Ui.Drawable {
 	// If isPartialUpdate flag is set to true, strictly limit the updated screen area: set clip rectangle before clearing old text
 	// and drawing new. Clipping rectangle should not change between seconds.
 	function drawSeconds(dc, isPartialUpdate) {
-		if (self.mHideSeconds || self.mBurnProtection) {
+		if (self.mHideSeconds || self._burnProtection) {
 			return;
 		}
 
@@ -171,39 +255,54 @@ class ThickThinTime extends Ui.Drawable {
 		dc.drawText(
 			self.mSecondsClipRectX,
 			self.mSecondsY,
-			self.mSecondsFont,
+			Graphics.FONT_NUMBER_MEDIUM,
 			seconds,
 			Graphics.TEXT_JUSTIFY_LEFT | Graphics.TEXT_JUSTIFY_VCENTER
 		);
 
 	}
 
+	function resetBurnProtectionStyles() {
+		if (!self._burnProtection){
+			self._currentHourFont = self._hourFonts[0];
+			self._currentMinuteFont = self._minuteFonts[0];
+		}
+		else{
+			self._currentHourFont = self._hourFonts[1];
+			self._currentMinuteFont = self._minuteFonts[1];
+		}
+		self._currentHourColor = $.gTheme.HoursColor;
+		self._currentMinuteColor = $.gTheme.MinutesColor;
+	}
+
+
+	function updateBurnProtectionStyles( duration as Number) {
+			var durationMin = duration / 60;
+
+			var index = 1 + durationMin / _aodPowerProfile.HourFontDowngradeDelay;
+			if (index >= self._hourFonts.size()) {
+				index = self._hourFonts.size() - 1;
+			}
+			self._currentHourFont = self._hourFonts[index];
+
+			index = 1 + durationMin / _aodPowerProfile.MinuteFontDowngradeDelay;
+			if (index >= self._minuteFonts.size()) {
+				index = self._minuteFonts.size() - 1;
+			}
+			self._currentMinuteFont = self._minuteFonts[index];
+
+
+			self._currentHourColor =  _aodPowerProfile.computeColor(_aodPowerProfile.HourAlphaParams, durationMin, $.gTheme.HoursColor );
+			self._currentMinuteColor =  _aodPowerProfile.computeColor(_aodPowerProfile.MinuteAlphaParams, durationMin, $.gTheme.MinutesColor );
+	}
+
+	
 	function onSettingsChanged() {
 		var hoursFontType = getApp().getProperty("HoursFontType");
 		var minutesFontType = getApp().getProperty("MinutesFontType");
 
-		self.mHoursFont = Ui.loadResource(hoursFontType ? Rez.Fonts.TimeSmallFont : Rez.Fonts.TimeFont);
-
-		if (Rez.Fonts has :TimeFontOutline && Rez.Fonts has :TimeSmallFontOutline) {
-			self.mHoursFontOutline = Ui.loadResource(hoursFontType ? Rez.Fonts.TimeSmallFontOutline : Rez.Fonts.TimeFontOutline);
-		}
-		else {
-			self.mHoursFontOutline = self.mHoursFont;
-		}
-
-		if (hoursFontType == minutesFontType) {
-			self.mMinutesFont = self.mHoursFont;
-			self.mMinutesFontOutline = self.mHoursFontOutline;
-		}
-		else {
-			self.mMinutesFont = Ui.loadResource(minutesFontType ? Rez.Fonts.TimeSmallFont : Rez.Fonts.TimeFont);
-			if (Rez.Fonts has :TimeFontOutline && Rez.Fonts has :TimeSmallFontOutline) {
-				self.mMinutesFontOutline = Ui.loadResource(minutesFontType ? Rez.Fonts.TimeSmallFontOutline : Rez.Fonts.TimeFontOutline);
-			}
-			else {
-				self.mMinutesFontOutline = self.mMinutesFont;
-			}
-		}
+		self._hourFonts = hoursFontType ? self._smallFonts : self._largeFonts;
+		self._minuteFonts = minutesFontType ? self._smallFonts : self._largeFonts;
 
 		self.mHoursAdjustX = 0;
 		self.mMinutesAdjustX = 0;
@@ -221,7 +320,28 @@ class ThickThinTime extends Ui.Drawable {
 			self.mMinutesAdjustX += 5;
 		}
 
-		self.mSecondsFont = Graphics.FONT_NUMBER_MEDIUM;
+		var aodPowerSaverLevel = getApp().getProperty("AODPowerSaver");
+		if (aodPowerSaverLevel == 0) {
+			_aodPowerProfile.setFontDowngradeDelay(1440, 1440);
+			_aodPowerProfile.setHourAlpha(0, 0, 0);
+			_aodPowerProfile.setMinuteAlpha(0, 0, 0);
+		}
+		else	if (aodPowerSaverLevel == 1) {
+			_aodPowerProfile.setFontDowngradeDelay(2, 10);
+			_aodPowerProfile.setHourAlpha(0.01, -0.02, 0.25);
+			_aodPowerProfile.setMinuteAlpha(0.005, -0.01, 0.15);
+		}
+		else	if (aodPowerSaverLevel == 2) {
+			_aodPowerProfile.setFontDowngradeDelay(1, 5);
+			_aodPowerProfile.setHourAlpha(0.02, -0.02, 0.3);
+			_aodPowerProfile.setMinuteAlpha(0.01, -0.01, 0.2);
+		}
+		else	if (aodPowerSaverLevel == 3) {
+			_aodPowerProfile.setFontDowngradeDelay(1, 2);
+			_aodPowerProfile.setHourAlpha(0.025, 0, 0.35);
+			_aodPowerProfile.setMinuteAlpha(0.01, -0.01, 0.25);
+		}
+		resetBurnProtectionStyles();
 	}
 
 
@@ -249,7 +369,7 @@ class ThickThinTime extends Ui.Drawable {
 			}
 		}
 
-		hour = hour.format( self.mBurnProtection ? "%d" : "%02d");
+		hour = hour.format( self._burnProtection ? "%d" : "%02d");
 
 		return {
 			:hour => hour,
@@ -257,5 +377,7 @@ class ThickThinTime extends Ui.Drawable {
 			:amPm => amPm
 		};
 	}
+
+		
 
 }

@@ -24,7 +24,7 @@ char id=61755 x=0     y=50    width=25    height=24    xoffset=-1    yoffset=0  
 char id=61756 x=201   y=50    width=22    height=24    xoffset=1     yoffset=0     xadvance=23    page=0  chnl=15
 char id=61757 x=26    y=50    width=25    height=24    xoffset=-1    yoffset=0     xadvance=23    page=0  chnl=15
 char id=61762 x=153   y=50    width=23    height=24    xoffset=0     yoffset=0     xadvance=23    page=0  chnl=15
-char id=61773 x=52    y=50    width=25    height=24    xoffset=-1    yoffset=0     xadvance=23    page=0  chnl=15
+char id=61771 x=52    y=50    width=25    height=24    xoffset=-1    yoffset=0     xadvance=23    page=0  chnl=15
 char id=61790 x=0     y=75    width=21    height=24    xoffset=1     yoffset=0     xadvance=23    page=0  chnl=15
 char id=61798 x=78    y=50    width=25    height=24    xoffset=-1    yoffset=0     xadvance=23    page=0  chnl=15
 char id=61807 x=0     y=0     width=29    height=24    xoffset=-1    yoffset=0     xadvance=27    page=0  chnl=15
