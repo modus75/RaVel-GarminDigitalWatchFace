@@ -52,20 +52,25 @@ class SleepTimeTracker {
 	private var _freezeAlwaysOnDisplaySteps;
 	private var _freezeAlwaysOnDisplayShowEventCount;
 
-	private var _AODTimeout as Number;
-	private var _nextAODOffTime as Number;
+	private var _screenOffTimeout as Number;
+	private var _screenOffDelayOnSteps as Number;
+	private var _nexScreenOffTime as Number;
+
+	private var _stepTracker as StepTracker;
 
 	function initialize() {
 		self._freezeAlwaysOnDisplay = false;
 		self._freezeAlwaysOnDisplaySteps = 0;
 		self._freezeAlwaysOnDisplayShowEventCount = 0;
 
-		self._AODTimeout = 0;
+		self._screenOffTimeout = 0;
+		self._screenOffDelayOnSteps = 0;
 
 		self._flags = 0;
 		for (var i=0; i<NB_FLAGS; i++ ) {
 			_lastChangeTimes[i] = 0;
 		}
+		self._stepTracker = new StepTracker();
 	}
 
 	function onShow() as Void {
@@ -75,10 +80,7 @@ class SleepTimeTracker {
 
 	function onHide() as Void {
 		setMask(VISIBLE_M | NODISTURB_M, (System.getDeviceSettings().doNotDisturb ? NODISTURB_M : 0) );
-		var newOffTime = self._lastChangeTimes[VISIBLE_F] + 120;
-		if (newOffTime > self._nextAODOffTime) {
-			self._nextAODOffTime = newOffTime;
-		}
+		delayScreenOffTime( self._lastChangeTimes[VISIBLE_F] + 240 );
 	}
 
 	function onExitSleep() as Void {
@@ -87,7 +89,7 @@ class SleepTimeTracker {
 
 	function onEnterSleep() as Void {
 		setMask(LOPOWER_M | NODISTURB_M, LOPOWER_M | (System.getDeviceSettings().doNotDisturb ? NODISTURB_M : 0) );
-		self._nextAODOffTime = 	self._lastChangeTimes[LOPOWER_F] + self._AODTimeout;
+		self._nexScreenOffTime = 	self._lastChangeTimes[LOPOWER_F] + self._screenOffTimeout;
 	}
 
 	function onBackgroundSleepTime() as Void {
@@ -98,7 +100,7 @@ class SleepTimeTracker {
 		setMask(BGSLEEP_M | NODISTURB_M, (System.getDeviceSettings().doNotDisturb ? NODISTURB_M : 0) );
 	}
 
-	function onUpdate() {
+	public function onUpdate() {
 
 		var doNotDisturb = System.getDeviceSettings().doNotDisturb;
 		setMask(NODISTURB_M, (doNotDisturb ? NODISTURB_M : 0) );
@@ -119,9 +121,39 @@ class SleepTimeTracker {
 		}
 
 		if ( self._flags & (LOPOWER_M) == LOPOWER_M ) {
-				var now = Time.now().value();
-				if ( now > self._nextAODOffTime ) {
-					return false;
+			var now = Time.now().value();
+			var secBoundary = now % 60;
+			if ( secBoundary % 60 == 0) {
+
+				if ( self._stepTracker.poll( now ) ) {
+
+					if (self._stepTracker.PeriodSteps >= self._stepTracker.AvgPeriodSteps + 10 ) {
+						var delta = ( self._stepTracker.PeriodSteps - self._stepTracker.AvgPeriodSteps ) / self._stepTracker.PeriodSteps;
+						if (delta > 0.2) {
+							self.delayScreenOffTime( now + Math.round( self._screenOffDelayOnSteps * delta ) );
+						}
+						return true;
+					}
+
+					if (self._stepTracker.PeriodSteps <= self._stepTracker.AvgPeriodSteps - 10 ) {
+						var delta = ( - self._stepTracker.PeriodSteps + self._stepTracker.AvgPeriodSteps ) / self._stepTracker.AvgPeriodSteps;
+						if (delta > 0.2) {
+							self.delayScreenOffTime( now + Math.round( self._screenOffDelayOnSteps * 0.8 * delta ) );
+						}
+						return true;
+					}
+
+				}
+			}
+			else if ( secBoundary >= 3) {
+				/* as of 2022-10
+				 -  in wrist gesture on draw is called on small movements even if the full high power mode is not triggered
+				 - when a message is received there is a bug and draw is called every second until a hi power mode is triggered*/
+				self.delayScreenOffTime( now + 1 );
+			}
+
+			if ( now >= self._nexScreenOffTime ) {
+				return false;
 			}
 		}
 
@@ -220,22 +252,31 @@ class SleepTimeTracker {
 		return false;
 	}
 
+	private function delayScreenOffTime(until) {
+		if (until > self._nexScreenOffTime) {
+			self._nexScreenOffTime = until;
+		}
+	}
+
 	public function onSettingsChanged() {
 		var aodPowerSaverLevel = getApp().getProperty("AODPowerSaver");
+		self._screenOffDelayOnSteps = 300;
 		if (aodPowerSaverLevel == 0) {
-			self._AODTimeout = 86400;
+			self._screenOffTimeout = 86400;
+			self._screenOffDelayOnSteps = 600;
 		}
 		else if (aodPowerSaverLevel == 1){
-			self._AODTimeout = 3600;
+			self._screenOffTimeout = 5400;
 		}
 		else if (aodPowerSaverLevel == 2){
-			self._AODTimeout = 1800;
+			self._screenOffTimeout = 1800;
 		}
 		else if (aodPowerSaverLevel == 3){
-			self._AODTimeout = 900;
+			self._screenOffTimeout = 300;
+			self._screenOffDelayOnSteps = 150;
 		}
 
-		self._nextAODOffTime = Time.now().value() + self._AODTimeout;
+		self._nexScreenOffTime = Time.now().value() + self._screenOffTimeout;
 
 	}
 	

@@ -84,6 +84,12 @@ class Gauge extends WatchUi.Drawable
 				x, y, 
 				self._iconFont, self._values[:icon], Graphics.TEXT_JUSTIFY_CENTER|Graphics.TEXT_JUSTIFY_VCENTER);
 		}
+		else {
+			dc.setColor( self._values[:valueColor]!=null ? self._values[:valueColor] : $.gTheme.ForeColor, Graphics.COLOR_TRANSPARENT);
+			dc.drawText(
+				x, y, 
+				Graphics.FONT_TINY, self._values[:text], Graphics.TEXT_JUSTIFY_CENTER|Graphics.TEXT_JUSTIFY_VCENTER);
+		}
 
 
 		if (self._displayType == GAUGE_DISPLAY_ALL) {

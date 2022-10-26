@@ -55,6 +55,7 @@
 			<listEntry value="6">@Strings.Battery</listEntry>
 			<listEntry value="7">@Strings.BodyBattery</listEntry>
 			<listEntry value="8">@Strings.StressLevel</listEntry>
+			<listEntry value="10">Weather</listEntry>
 			<listEntry value="0">@Strings.Off</listEntry>
 		</settingConfig>
 	</setting>
@@ -68,6 +69,7 @@
 			<listEntry value="6">@Strings.Battery</listEntry>
 			<listEntry value="7">@Strings.BodyBattery</listEntry>
 			<listEntry value="8">@Strings.StressLevel</listEntry>
+			<listEntry value="10">Weather</listEntry>
 			<listEntry value="0">@Strings.Off</listEntry>
 		</settingConfig>
 	</setting>
@@ -167,5 +169,8 @@
 		</settingConfig>
 	</setting>
 
+	<setting propertyKey="@Properties.DebugLowPowerMode" title="Debug Low power mode">
+		<settingConfig type="boolean" />
+	</setting>
 
 </settings>

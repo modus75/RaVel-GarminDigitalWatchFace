@@ -69,11 +69,13 @@ class ThickThinTime extends Ui.Drawable {
 	private var mHoursAdjustX;
 	private var mMinutesAdjustX;
 
-	private var mHideSeconds = false;
+	private var _hideSeconds = false;
 	private var _burnProtection = false;
 	private var _lastBurnOffsets = [0,0];
 	private var _lastBurnOffsetsChangedTime;
 	private var _lastBurnProtectionTime;
+
+	private var _debugLowPowerMode = false;
 
 	function initialize(params) {
 		Drawable.initialize(params);
@@ -128,12 +130,12 @@ class ThickThinTime extends Ui.Drawable {
 
 
 	function getHideSeconds() {
-		return mHideSeconds;
+		return _hideSeconds;
 	}
 
 	function setHideSeconds(hideSeconds) {
-		var ret = self.mHideSeconds != hideSeconds;
-		self.mHideSeconds = hideSeconds;
+		var ret = self._hideSeconds != hideSeconds;
+		self._hideSeconds = hideSeconds;
 		return ret;
 	}
 
@@ -142,7 +144,7 @@ class ThickThinTime extends Ui.Drawable {
 		self._burnProtection = true;
 		self._lastBurnProtectionTime = Time.now().value();
 		self._lastBurnOffsetsChangedTime = self._lastBurnProtectionTime;
-		self._lastBurnOffsets = [0,0];
+		self._lastBurnOffsets = [ 0, 0 ];
 		resetBurnProtectionStyles();
 	}
 
@@ -225,11 +227,25 @@ class ThickThinTime extends Ui.Drawable {
 	// If isPartialUpdate flag is set to true, strictly limit the updated screen area: set clip rectangle before clearing old text
 	// and drawing new. Clipping rectangle should not change between seconds.
 	function drawSeconds(dc, isPartialUpdate) {
-		if (self.mHideSeconds || self._burnProtection) {
+		if (self._hideSeconds /*|| self._burnProtection*/) {
 			return;
 		}
 
 		var clockTime = Sys.getClockTime();
+
+		if (self._burnProtection){
+			if (_debugLowPowerMode && clockTime.sec != 0) {
+				dc.drawText(
+					self.mSecondsClipRectX,
+					self.mSecondsY + self._lastBurnOffsets[1],
+					Graphics.FONT_TINY,
+					clockTime.sec.format("%02d"),
+					Graphics.TEXT_JUSTIFY_LEFT | Graphics.TEXT_JUSTIFY_VCENTER
+				);
+			}
+			return;
+		}
+
 		var seconds = clockTime.sec.format("%02d");
 
 		if (isPartialUpdate) {
@@ -298,6 +314,7 @@ class ThickThinTime extends Ui.Drawable {
 
 	
 	function onSettingsChanged() {
+		self._debugLowPowerMode = getApp().getProperty("DebugLowPowerMode");
 		var hoursFontType = getApp().getProperty("HoursFontType");
 		var minutesFontType = getApp().getProperty("MinutesFontType");
 
@@ -337,7 +354,7 @@ class ThickThinTime extends Ui.Drawable {
 			_aodPowerProfile.setMinuteAlpha(0.01, -0.01, 0.2);
 		}
 		else	if (aodPowerSaverLevel == 3) {
-			_aodPowerProfile.setFontDowngradeDelay(1, 2);
+			_aodPowerProfile.setFontDowngradeDelay(1, 3);
 			_aodPowerProfile.setHourAlpha(0.025, 0, 0.35);
 			_aodPowerProfile.setMinuteAlpha(0.01, -0.01, 0.25);
 		}

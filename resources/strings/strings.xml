@@ -36,6 +36,7 @@
 	<string id="HeartRate">Heart rate</string>
 	<string id="Respiration">Respiration rate</string>
 	<string id="Date">Date</string>
+	<string id="Battery">Battery</string>
 
 	<string id="AllSegmentsMerged">All Segments (Merged)</string>
 	<string id="FilledSegmentsMerged">Filled Segments (Merged)</string>
@@ -43,8 +44,6 @@
 	<string id="FilledSegments">Filled Segments</string>
 	<string id="Hidden">Hidden</string>
 
-	<string id="Battery">Battery</string>
-	
 	<string id="ShowAlarmIconTitle">Show alarm icon</string>
 	<string id="ShowDontDisturbIconTitle">Show do not disturb icon</string>
 	<string id="ShowNotificationIconTitle">Show notification icon</string>

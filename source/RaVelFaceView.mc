@@ -24,6 +24,7 @@ enum /* DATA_TYPES */ {
 	DATA_TYPE_BODY_BATTERY = 7,
 	DATA_TYPE_STRESS_LEVEL = 8,
 	DATA_TYPE_RESPIRATION = 9,
+	DATA_TYPE_WEATHER = 10,
 	DATA_TYPE_DATE = 16,
 	DATA_TYPE_DEBUG = 99,
 }
@@ -54,7 +55,7 @@ class RaVelFaceView extends WatchUi.WatchFace {
 	private var mShowDontDisturbIcon;
 	private var mShowNotificationIcon;
 
-	private var mBurnProtection = false;
+	private var _burnProtection = false;
 	private var mLastBurnOffsets = [0,0];
 	private var mLastBurnOffsetsChangedMinute = 0;
 
@@ -127,7 +128,7 @@ class RaVelFaceView extends WatchUi.WatchFace {
 		var now = System.getClockTime();
 		self._lightDimmer.check( now );
 
-		if (self.mBurnProtection && self.mLastBurnOffsetsChangedMinute !=  now.min) {
+		if (self._burnProtection && self.mLastBurnOffsetsChangedMinute != now.min) {
 			self.mLastBurnOffsets = [Math.rand() % 16 - 8, Math.rand() % 16 - 8];
 			self.mLastBurnOffsetsChangedMinute = now.min;
 			for (var i=0; i < 2; i++) {
@@ -145,7 +146,7 @@ class RaVelFaceView extends WatchUi.WatchFace {
 		var values;
 
 		/* top data above clock*/
-		if (!self.mBurnProtection) {
+		if (!self._burnProtection) {
 			values = self.getValuesForDataType( self.mTopDataType );
 
 			if ( values[:isValid] ) {
@@ -175,7 +176,7 @@ class RaVelFaceView extends WatchUi.WatchFace {
 		}
 
 		/* bottom left below clock */
-		if (!self.mBurnProtection) {
+		if (!self._burnProtection) {
 			values = self.getValuesForDataType(self.mBottomLeftDataType);
 
 			if ( values[:isValid] ) {
@@ -215,7 +216,7 @@ class RaVelFaceView extends WatchUi.WatchFace {
 		{
 			values = self.getValuesForDataType(self.mBottomRightDataType);
 
-			if ( values[:isValid] && (!self.mBurnProtection || values[:burnProtection]!=null)) {
+			if ( values[:isValid] && (!self._burnProtection || values[:burnProtection]!=null)) {
 				var font = Graphics.FONT_NUMBER_MILD;
 
 				var textDims = dc.getTextDimensions(values[:text], font);
@@ -223,7 +224,7 @@ class RaVelFaceView extends WatchUi.WatchFace {
 				var x = dc.getWidth()/2;
 				var y = dc.getHeight() - textDims[1]/2 + 1;
 
-				if (self.mBurnProtection) {
+				if (self._burnProtection) {
 					x += self.mLastBurnOffsets[0];
 					y -= self.mLastBurnOffsets[1].abs();
 				}
@@ -233,7 +234,7 @@ class RaVelFaceView extends WatchUi.WatchFace {
 					var iconDims = dc.getTextDimensions(values[:icon], self.mIconsFont);
 					textDims[0] += iconDims[0]; // center on icon+text
 
-					if (!self.mBurnProtection || values[:burnProtection] & BURN_PROTECTION_SHOW_ICON) {
+					if (!self._burnProtection || values[:burnProtection] & BURN_PROTECTION_SHOW_ICON) {
 						dc.setColor( values[:valueColor]!=null ? values[:valueColor] : $.gTheme.IconColor, Graphics.COLOR_TRANSPARENT);
 						dc.drawText(
 							x - (textDims[0])/2,
@@ -242,7 +243,7 @@ class RaVelFaceView extends WatchUi.WatchFace {
 					}
 				}
 
-				if (!self.mBurnProtection || values[:burnProtection] & BURN_PROTECTION_SHOW_TEXT) {
+				if (!self._burnProtection || values[:burnProtection] & BURN_PROTECTION_SHOW_TEXT) {
 					dc.setColor( values[:valueColor]!=null ? values[:valueColor] : $.gTheme.ForeColor, Graphics.COLOR_TRANSPARENT);
 					dc.drawText(
 						x + textDims[0]/2,
@@ -254,7 +255,7 @@ class RaVelFaceView extends WatchUi.WatchFace {
 
 
 		/* icons */
-		if (!self.mBurnProtection) {
+		if (!self._burnProtection) {
 			var icons = "";
 			if (self.mShowAlarmIcon) {
 				if ( System.getDeviceSettings().alarmCount ) {
@@ -297,18 +298,18 @@ class RaVelFaceView extends WatchUi.WatchFace {
 
 	function onShow() as Void {
 		//TRACE("onShow");
-		_sleepTimeTracker.onShow();
+		self._sleepTimeTracker.onShow();
 	}
 
 	function onHide() as Void {
 		//TRACE("onHide");
-		_sleepTimeTracker.onHide();
+		self._sleepTimeTracker.onHide();
 	}
 
 	function onExitSleep() as Void {
 		//TRACE("onExitSleep");
-		_sleepTimeTracker.onExitSleep();
-		self.mBurnProtection = false;
+		self._sleepTimeTracker.onExitSleep();
+		self._burnProtection = false;
 		for (var i=0; i < 2; i++) {
 			if (self.mGauges[i]) {
 				self.mGauges[i].setXYOffset(0,0);
@@ -319,9 +320,9 @@ class RaVelFaceView extends WatchUi.WatchFace {
 
 	function onEnterSleep() as Void {
 		//TRACE("onEnterSleep");
-		_sleepTimeTracker.onEnterSleep();
+		self._sleepTimeTracker.onEnterSleep();
 		if (System.getDeviceSettings().requiresBurnInProtection) {
-			self.mBurnProtection = true;
+			self._burnProtection = true;
 			self.mLastBurnOffsetsChangedMinute = System.getClockTime().min;
 			self.mLastBurnOffsets = [0,0];
 			self.mTime.enterBurnProtection();
@@ -410,7 +411,7 @@ class RaVelFaceView extends WatchUi.WatchFace {
 					else {
 						values[:icon] = ICON_NOTIFICATIONS_FULL;
 						values[:max] = 1;
-						if (self.mBurnProtection || self._sleepTimeTracker.getSleepMode()) {
+						if (self._burnProtection || self._sleepTimeTracker.getSleepMode()) {
 							values[:valueColor] = $.gTheme.ForeColor;
 							values[:burnProtection] = BURN_PROTECTION_SHOW_ICON;
 						}
@@ -492,11 +493,16 @@ class RaVelFaceView extends WatchUi.WatchFace {
 				if (info has :respirationRate and info.respirationRate  != null) {
 					values[:value] = info.respirationRate ;
 				}
-				/*values[:value] = $.gTheme.ForeColor;
-				values[:text] = values[:value].format("%2X");*/
 				values[:icon] = ICON_RESPIRATION;
 				break;
-
+			case DATA_TYPE_WEATHER:
+				{
+					var wCond= Weather.getCurrentConditions();
+					values[:value] = wCond.precipitationChance;
+					values[:max] = 100;
+					values[:text] = Lang.format("$1$°", [wCond.temperature] );
+				}
+				break;
 			case DATA_TYPE_DATE:
 				var now = Gregorian.info(Time.now(), Time.FORMAT_SHORT);
 
@@ -515,6 +521,11 @@ class RaVelFaceView extends WatchUi.WatchFace {
 				break;
 
 			case DATA_TYPE_DEBUG:
+				{
+					/*var wCond= Weather.getCurrentConditions();
+					values[:value] = wCond.precipitationChance;
+					values[:text] = Lang.format("$1$ $2$%", [wCond.temperature, wCond.precipitationChance] );*/
+				}
 				break;
 		}
 
@@ -531,7 +542,7 @@ class RaVelFaceView extends WatchUi.WatchFace {
 	private function updateDrawables() {
 		var sleepMode = self._sleepTimeTracker.getSleepMode();
 		/* meters */
-		if (!self.mBurnProtection && !sleepMode ) {
+		if (!self._burnProtection && !sleepMode ) {
 			for (var i=0; i < 2; i++) {
 				var values = self.getValuesForDataType(self.mMeterTypes[i]);
 				self.mMeters[i].setValues(values[:isValid] ? values : null);
@@ -549,7 +560,7 @@ class RaVelFaceView extends WatchUi.WatchFace {
 
 				var displayType = GAUGE_DISPLAY_OFF;
 				if (values[:isValid]) {
-					if (self.mBurnProtection || sleepMode) {
+					if (self._burnProtection || sleepMode) {
 						displayType = values[:burnProtection] == BURN_PROTECTION_SHOW_ICON ? GAUGE_DISPLAY_ICON : GAUGE_DISPLAY_OFF;
 					}
 					else {

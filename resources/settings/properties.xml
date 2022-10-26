@@ -1,16 +1,16 @@
 <properties>
 
 	<property id="Theme" type="number">0</property>
-	
+
 	<property id="HoursFontType" type="boolean">true</property>
 	<property id="MinutesFontType" type="boolean">false</property>
-    <property id="SecondsDisplayMode" type="number">2</property>
+  <property id="SecondsDisplayMode" type="number">2</property>
 
 	<property id="TopDataType" type="number">16</property>
-	
+
 	<property id="BottomLeftDataType" type="number">1</property>
 	<property id="BottomDataType" type="number">4</property>
-	
+
 	<property id="LeftGoalType" type="number">1</property>
 	<property id="RightGoalType" type="number">2</property>
 	<property id="GoalMeterStyle" type="number">0</property>
@@ -28,4 +28,6 @@
 	<property id="LightDimmerWEEndTime" type="number">930</property>
 
 	<property id="AODPowerSaver" type="number">1</property>
+
+	<property id="DebugLowPowerMode" type="boolean">false</property>
 </properties>
