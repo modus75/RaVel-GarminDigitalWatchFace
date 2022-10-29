@@ -63,7 +63,7 @@ class SleepTimeTracker {
 		self._freezeAlwaysOnDisplaySteps = 0;
 		self._freezeAlwaysOnDisplayShowEventCount = 0;
 
-		self._screenOffTimeout = 0;
+		self._screenOffTimeout = 86400;
 		self._screenOffDelayOnSteps = 0;
 
 		self._flags = 0;

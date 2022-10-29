@@ -9,7 +9,7 @@ using Toybox.SensorHistory;
 using Toybox.Sensor;
 
 
-var gTheme;
+var gTheme as Theme;
 
 
 enum /* DATA_TYPES */ {
@@ -30,9 +30,10 @@ enum /* DATA_TYPES */ {
 }
 
 
-const BURN_PROTECTION_UNDEFINED = 0;
-const BURN_PROTECTION_SHOW_ICON = 1;
-const BURN_PROTECTION_SHOW_TEXT = 2;
+enum {
+	DISPLAY_TEXT 	= 1,
+	DISPLAY_ICON 	= 2,
+}
 
 class RaVelFaceView extends WatchUi.WatchFace {
 	private var mTime;
@@ -65,6 +66,15 @@ class RaVelFaceView extends WatchUi.WatchFace {
 	function initialize() {
 		WatchFace.initialize();
 		$.gTheme = new Theme();
+
+		if ( System.getDeviceSettings() has :requiresBurnInProtection && System.getDeviceSettings().requiresBurnInProtection) {
+			self._lightDimmer = new TimeBasedLightDimmer(); // should test for amoled
+			self._sleepTimeTracker = new SleepTimeTracker();
+		}
+		else {
+			self._lightDimmer = new NullLightDimmer();
+			self._sleepTimeTracker = new NullSleepTimeTracker();
+		}
 	}
 
 	function onLayout(dc as Dc) as Void {
@@ -78,8 +88,12 @@ class RaVelFaceView extends WatchUi.WatchFace {
 			ravelOptions = {};
 		}
 
-		mIconsFont = WatchUi.loadResource(Rez.Fonts.IconsFont);
-		mTime = View.findDrawableById("Time");
+		self.mIconsFont = WatchUi.loadResource(Rez.Fonts.IconsFont);
+		self.mTime = View.findDrawableById("Time");
+
+		if (self._burnProtection) {
+			self.mTime.enterBurnProtection();
+		}
 
 		mMeters[0] = View.findDrawableById("LeftGoalMeter");
 		mMeters[1] = View.findDrawableById("RightGoalMeter");
@@ -91,15 +105,6 @@ class RaVelFaceView extends WatchUi.WatchFace {
 		if (ravelOptions["displayMeterIcons"]) {
 			mMeters[0].setIconFont(mIconsFont);
 			mMeters[1].setIconFont(mIconsFont);
-		}
-
-		if ( System.getDeviceSettings() has :requiresBurnInProtection && System.getDeviceSettings().requiresBurnInProtection) {
-			self._lightDimmer = new TimeBasedLightDimmer(); // should test for amoled
-			self._sleepTimeTracker = new SleepTimeTracker();
-		}
-		else {
-			self._lightDimmer = new NullLightDimmer();
-			self._sleepTimeTracker = new NullSleepTimeTracker();
 		}
 
 		for (var i=0 ;i<2 ; i++) {
@@ -234,7 +239,7 @@ class RaVelFaceView extends WatchUi.WatchFace {
 					var iconDims = dc.getTextDimensions(values[:icon], self.mIconsFont);
 					textDims[0] += iconDims[0]; // center on icon+text
 
-					if (!self._burnProtection || values[:burnProtection] & BURN_PROTECTION_SHOW_ICON) {
+					if (!self._burnProtection || values[:burnProtection] & DISPLAY_ICON) {
 						dc.setColor( values[:valueColor]!=null ? values[:valueColor] : $.gTheme.IconColor, Graphics.COLOR_TRANSPARENT);
 						dc.drawText(
 							x - (textDims[0])/2,
@@ -243,7 +248,7 @@ class RaVelFaceView extends WatchUi.WatchFace {
 					}
 				}
 
-				if (!self._burnProtection || values[:burnProtection] & BURN_PROTECTION_SHOW_TEXT) {
+				if (!self._burnProtection || values[:burnProtection] & DISPLAY_TEXT) {
 					dc.setColor( values[:valueColor]!=null ? values[:valueColor] : $.gTheme.ForeColor, Graphics.COLOR_TRANSPARENT);
 					dc.drawText(
 						x + textDims[0]/2,
@@ -325,7 +330,9 @@ class RaVelFaceView extends WatchUi.WatchFace {
 			self._burnProtection = true;
 			self.mLastBurnOffsetsChangedMinute = System.getClockTime().min;
 			self.mLastBurnOffsets = [0,0];
-			self.mTime.enterBurnProtection();
+			if (self.mTime != null) {
+				self.mTime.enterBurnProtection();
+			}
 		}
 	}
 
@@ -337,7 +344,7 @@ class RaVelFaceView extends WatchUi.WatchFace {
 		self._sleepTimeTracker.onBackgroundWakeTime();
 	}
 
-	function onSettingsChanged() {
+	function onSettingsChanged() as Void {
 		self._lightDimmer.onSettingsChanged();
 		self._sleepTimeTracker.onSettingsChanged();
 		$.gTheme.onSettingsChanged();
@@ -413,13 +420,13 @@ class RaVelFaceView extends WatchUi.WatchFace {
 						values[:max] = 1;
 						if (self._burnProtection || self._sleepTimeTracker.getSleepMode()) {
 							values[:valueColor] = $.gTheme.ForeColor;
-							values[:burnProtection] = BURN_PROTECTION_SHOW_ICON;
+							values[:burnProtection] = DISPLAY_ICON;
 						}
 					}
 				}
 				else {
 					values[:text] = "-";
-					values[:burnProtection] = BURN_PROTECTION_SHOW_ICON;
+					values[:burnProtection] = DISPLAY_ICON;
 					values[:valueColor] = $.gTheme.WarnColor;
 					values[:icon] = ICON_PHONE_DISCONNECTED;
 				}
@@ -439,6 +446,7 @@ class RaVelFaceView extends WatchUi.WatchFace {
 				break;
 			case DATA_TYPE_BATTERY:
 				var batteryLevel = System.getSystemStats().battery;
+				var batteryInDays = System.getSystemStats().batteryInDays;
 				values[:value] = Math.floor(batteryLevel);
 				values[:max] = 100;
 				values[:text] = values[:value].format("%.0f");
@@ -454,13 +462,13 @@ class RaVelFaceView extends WatchUi.WatchFace {
 				else {
 					values[:icon] = batteryLevel > 15 ? ICON_BATTERY_QUARTER : ICON_BATTERY_EMPTY;
 
-					if (batteryLevel < 10 || System.getSystemStats().batteryInDays < 1) {
+					if (batteryLevel < 10 || batteryInDays < 1) {
 						values[:valueColor] = $.gTheme.ErrorColor;
-						values[:burnProtection] = BURN_PROTECTION_SHOW_ICON;
+						values[:burnProtection] = DISPLAY_ICON;
 					}
-					else if (batteryLevel < 15 || System.getSystemStats().batteryInDays < 2) {
+					else if (batteryLevel < 15 || batteryInDays < 2) {
 						values[:valueColor] = $.gTheme.WarnColor;
-						values[:burnProtection] = BURN_PROTECTION_SHOW_ICON;
+						values[:burnProtection] = DISPLAY_ICON;
 					}
 				}
 				break;
@@ -489,12 +497,14 @@ class RaVelFaceView extends WatchUi.WatchFace {
 					}
 				}
 				break;
+
 			case DATA_TYPE_RESPIRATION:
 				if (info has :respirationRate and info.respirationRate  != null) {
 					values[:value] = info.respirationRate ;
 				}
 				values[:icon] = ICON_RESPIRATION;
 				break;
+
 			case DATA_TYPE_WEATHER:
 				{
 					var wCond= Weather.getCurrentConditions();
@@ -561,7 +571,7 @@ class RaVelFaceView extends WatchUi.WatchFace {
 				var displayType = GAUGE_DISPLAY_OFF;
 				if (values[:isValid]) {
 					if (self._burnProtection || sleepMode) {
-						displayType = values[:burnProtection] == BURN_PROTECTION_SHOW_ICON ? GAUGE_DISPLAY_ICON : GAUGE_DISPLAY_OFF;
+						displayType = values[:burnProtection] == DISPLAY_ICON ? GAUGE_DISPLAY_ICON : GAUGE_DISPLAY_OFF;
 					}
 					else {
 						displayType = GAUGE_DISPLAY_ALL;
