@@ -1,5 +1,6 @@
 import Toybox.Application;
 import Toybox.Time;
+import Toybox.Lang;
 
 class NullLightDimmer
 {

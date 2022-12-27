@@ -12,8 +12,7 @@
 
 	<font id="TimeFont" filename="../resources/fonts/HalvarEng-228-f-Medium.fnt" antialias="true"/>
 	<font id="TimeFont_LoPower" filename="../resources/fonts/HalvarEng-228-d-Light.fnt" antialias="true"/>
-	<font id="TimeFont_LoPower2" filename="../resources/fonts/HalvarEng-228-c-Thin.fnt" antialias="true"/>
-	<font id="TimeFont_LoPower3" filename="../resources/fonts/HalvarEng-228-b-XThin.fnt" antialias="true"/>
+	<font id="TimeFont_LoPower2" filename="../resources/fonts/HalvarEng-228-b-XThin.fnt" antialias="true"/>
 
 	<font id="TimeSmallFont" filename="../resources/fonts/HalvarEng-228-e-Regular.fnt" antialias="true"/>
 	<font id="TimeSmallFont_LoPower" filename="../resources/fonts/HalvarEng-228-c-Thin.fnt" antialias="true"/>
@@ -28,28 +27,28 @@
 
 		<drawable id="LeftGoalMeter" class="GoalMeter">
 			<param name="side">:left</param>
-			<param name="stroke">10</param>
+			<param name="stroke">9</param>
 			<param name="height">270</param>
 			<param name="separator">3</param>
 		</drawable>
 
 		<drawable id="RightGoalMeter" class="GoalMeter">
 			<param name="side">:right</param>
-			<param name="stroke">10</param>
+			<param name="stroke">9</param>
 			<param name="height">270</param>
 			<param name="separator">3</param>
 		</drawable>
 
 		<drawable id="LeftGauge" class="Gauge">
 			<param name="locX">102</param>
-			<param name="stroke">8</param>
-			<param name="radius">28</param>
+			<param name="stroke">7</param>
+			<param name="radius">29</param>
 		</drawable>
 
 		<drawable id="RightGauge" class="Gauge">
 			<param name="locX">314</param>
-			<param name="stroke">8</param>
-			<param name="radius">28</param>
+			<param name="stroke">7</param>
+			<param name="radius">29</param>
 		</drawable>
 
 		<drawable id="Time" class="ThickThinTime">

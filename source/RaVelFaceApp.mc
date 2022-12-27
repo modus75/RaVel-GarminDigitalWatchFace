@@ -7,7 +7,7 @@ import Toybox.Background;
 
 (:background)
 class RaVelFaceApp extends Application.AppBase {
-	var mView as RaVelFaceView;
+	var mView as RaVelFaceView?;
 	
 	function initialize() {
 		AppBase.initialize();

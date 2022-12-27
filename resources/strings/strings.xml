@@ -26,15 +26,19 @@
 	<string id="Always">Always</string>
 	<string id="SecondsDisplayAuto">Automatic (saves battery)</string>
 	
+	<string id="Off">Off</string>
+
 	<string id="Steps">Steps</string>
 	<string id="FloorsClimbed">Floors Climbed</string>
 	<string id="ActiveMinutes">Active Minutes (Weekly)</string>
 	<string id="BodyBattery">Body Battery</string>
 	<string id="StressLevel">Stress Level</string>
-	<string id="Off">Off</string>
 	<string id="Notifications">Notifications</string>
 	<string id="HeartRate">Heart rate</string>
 	<string id="Respiration">Respiration rate</string>
+	<string id="PulseOX">Pulse OX</string>
+	<string id="Calories">Calories</string>
+	<string id="RecoveryTime">Recovery time</string>
 	<string id="Date">Date</string>
 	<string id="Battery">Battery</string>
 

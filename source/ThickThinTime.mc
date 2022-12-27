@@ -1,10 +1,11 @@
 using Toybox.WatchUi as Ui;
 using Toybox.System as Sys;
 using Toybox.Application as App;
+import Toybox.Lang;
 
 class LowPowerProfile {
-	public var HourFontDowngradeDelay as Number;
-	public var MinuteFontDowngradeDelay as Number;
+	public var HourFontDowngradeDelay as Number?;
+	public var MinuteFontDowngradeDelay as Number?;
 
 	public var HourAlphaParams = [0, 0, 0];
 	public var MinuteAlphaParams = [0, 0, 0];
@@ -353,7 +354,7 @@ class ThickThinTime extends Ui.Drawable {
 			_aodPowerProfile.setHourAlpha(0.02, -0.02, 0.3);
 			_aodPowerProfile.setMinuteAlpha(0.01, -0.01, 0.2);
 		}
-		else	if (aodPowerSaverLevel == 3) {
+		else	if (aodPowerSaverLevel >= 3) {
 			_aodPowerProfile.setFontDowngradeDelay(1, 3);
 			_aodPowerProfile.setHourAlpha(0.025, 0, 0.35);
 			_aodPowerProfile.setMinuteAlpha(0.01, -0.01, 0.25);

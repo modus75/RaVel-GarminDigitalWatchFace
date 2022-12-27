@@ -34,16 +34,14 @@ class SleepTimeTracker {
 		VISIBLE_F   = 1,
 		NODISTURB_F = 2,
 		BGSLEEP_F   = 3,
-		
+
 		NB_FLAGS = 4
 	}
 
-	enum {
-		LOPOWER_M   = 1 << LOPOWER_F,
-		VISIBLE_M   = 1 << VISIBLE_F,
-		NODISTURB_M = 1 << NODISTURB_F,
-		BGSLEEP_M   = 1 << BGSLEEP_F,
-	}
+	const LOPOWER_M   = 1 << LOPOWER_F;
+	const VISIBLE_M   = 1 << VISIBLE_F;
+	const NODISTURB_M = 1 << NODISTURB_F;
+	const BGSLEEP_M   = 1 << BGSLEEP_F;
 
 	private var _flags as Number;
 	private var _lastChangeTimes = new [NB_FLAGS];
@@ -63,12 +61,15 @@ class SleepTimeTracker {
 		self._freezeAlwaysOnDisplaySteps = 0;
 		self._freezeAlwaysOnDisplayShowEventCount = 0;
 
+		var now = Time.now().value();
 		self._screenOffTimeout = 86400;
+		self._nexScreenOffTime = now + 86400;
+
 		self._screenOffDelayOnSteps = 0;
 
 		self._flags = 0;
 		for (var i=0; i<NB_FLAGS; i++ ) {
-			_lastChangeTimes[i] = 0;
+			self._lastChangeTimes[i] = 0;
 		}
 		self._stepTracker = new StepTracker();
 	}
@@ -80,7 +81,7 @@ class SleepTimeTracker {
 
 	function onHide() as Void {
 		setMask(VISIBLE_M | NODISTURB_M, (System.getDeviceSettings().doNotDisturb ? NODISTURB_M : 0) );
-		delayScreenOffTime( self._lastChangeTimes[VISIBLE_F] + 240 );
+		delayScreenOffTime( self._lastChangeTimes[VISIBLE_F] + 60 );
 	}
 
 	function onExitSleep() as Void {
@@ -89,7 +90,7 @@ class SleepTimeTracker {
 
 	function onEnterSleep() as Void {
 		setMask(LOPOWER_M | NODISTURB_M, LOPOWER_M | (System.getDeviceSettings().doNotDisturb ? NODISTURB_M : 0) );
-		self._nexScreenOffTime = 	self._lastChangeTimes[LOPOWER_F] + self._screenOffTimeout;
+		self._nexScreenOffTime = self._lastChangeTimes[LOPOWER_F] + self._screenOffTimeout;
 	}
 
 	function onBackgroundSleepTime() as Void {
@@ -105,7 +106,7 @@ class SleepTimeTracker {
 		var doNotDisturb = System.getDeviceSettings().doNotDisturb;
 		setMask(NODISTURB_M, (doNotDisturb ? NODISTURB_M : 0) );
 
-		if ( !doNotDisturb && self._flags & (BGSLEEP_M|LOPOWER_M) == BGSLEEP_M|LOPOWER_M ) {
+		if ( !doNotDisturb && ( (self._flags & (BGSLEEP_M|LOPOWER_M)) == (BGSLEEP_M|LOPOWER_M) ) ) {
 			// doNotDisturb changed to off - maybe first redraws in the morning but just before wake up time is sent in backround ?
 			var now = Time.now().value();
 
@@ -115,7 +116,7 @@ class SleepTimeTracker {
 		}
 
 		if (self._freezeAlwaysOnDisplay && !self.checkUnfreezeAlwaysOnDisplay()) {
-			 if (self._flags & (BGSLEEP_M|NODISTURB_M|LOPOWER_M) == LOPOWER_M) {
+			 if ( (self._flags & (BGSLEEP_M|NODISTURB_M|LOPOWER_M)) == LOPOWER_M ) {
 				return false;
 			 }
 		}
@@ -127,7 +128,7 @@ class SleepTimeTracker {
 
 				if ( self._stepTracker.poll( now ) ) {
 
-					if (self._stepTracker.PeriodSteps >= self._stepTracker.AvgPeriodSteps + 10 ) {
+					if (self._stepTracker.PeriodSteps >= self._stepTracker.AvgPeriodSteps + 15 ) {
 						var delta = ( self._stepTracker.PeriodSteps - self._stepTracker.AvgPeriodSteps ) / self._stepTracker.PeriodSteps;
 						if (delta > 0.2) {
 							self.delayScreenOffTime( now + Math.round( self._screenOffDelayOnSteps * delta ) );
@@ -135,7 +136,7 @@ class SleepTimeTracker {
 						return true;
 					}
 
-					if (self._stepTracker.PeriodSteps <= self._stepTracker.AvgPeriodSteps - 10 ) {
+					if (self._stepTracker.PeriodSteps <= self._stepTracker.AvgPeriodSteps - 15 ) {
 						var delta = ( - self._stepTracker.PeriodSteps + self._stepTracker.AvgPeriodSteps ) / self._stepTracker.AvgPeriodSteps;
 						if (delta > 0.2) {
 							self.delayScreenOffTime( now + Math.round( self._screenOffDelayOnSteps * 0.8 * delta ) );
@@ -145,7 +146,7 @@ class SleepTimeTracker {
 
 				}
 			}
-			else if ( secBoundary >= 3) {
+			else if ( secBoundary >= 2) {
 				/* as of 2022-10
 				 -  in wrist gesture on draw is called on small movements even if the full high power mode is not triggered
 				 - when a message is received there is a bug and draw is called every second until a hi power mode is triggered*/
@@ -170,7 +171,7 @@ class SleepTimeTracker {
 		mask = (self._flags ^ maskValue) & mask; // keep in mask only bits that changed
 
 		if  (mask != 0) {
-			maskValue &= mask; 
+			maskValue &= mask;
 
 			var prevFlags = self._flags;
 
@@ -182,7 +183,7 @@ class SleepTimeTracker {
 					self._lastChangeTimes[i] = now;
 				}
 			}
-			
+
 			processFlagsChanged(mask, prevFlags, now);
 		}
 	}
@@ -219,7 +220,7 @@ class SleepTimeTracker {
 		if (!self._freezeAlwaysOnDisplay) {
 			if ( mask & (BGSLEEP_M|NODISTURB_M) != 0 ) {
 				if (self._flags & (BGSLEEP_M|NODISTURB_M) == 0 ) {
-					
+
 					if (now - self.getLastChangeTime(BGSLEEP_M) <= 10 &&
 						now - self.getLastChangeTime(NODISTURB_M) <= 10 ) {
 							self._freezeAlwaysOnDisplay = true;
@@ -236,7 +237,7 @@ class SleepTimeTracker {
 
 
 	private function checkUnfreezeAlwaysOnDisplay() as Boolean {
-		if (self._freezeAlwaysOnDisplayShowEventCount >= 3 ) {
+		if (self._freezeAlwaysOnDisplayShowEventCount > 3 ) {
 			self._freezeAlwaysOnDisplay = false;
 			TRACE("Unfreeze wake time show events = " + self._freezeAlwaysOnDisplayShowEventCount.toString() );
 			return true;
@@ -259,25 +260,31 @@ class SleepTimeTracker {
 	}
 
 	public function onSettingsChanged() {
-		var aodPowerSaverLevel = getApp().getProperty("AODPowerSaver");
-		self._screenOffDelayOnSteps = 300;
+		var aodPowerSaverLevel = Application.Properties.getValue("AODPowerSaver");
+		
 		if (aodPowerSaverLevel == 0) {
 			self._screenOffTimeout = 86400;
 			self._screenOffDelayOnSteps = 600;
 		}
 		else if (aodPowerSaverLevel == 1){
-			self._screenOffTimeout = 5400;
+			self._screenOffTimeout = 3600;
+			self._screenOffDelayOnSteps = 3600;
 		}
 		else if (aodPowerSaverLevel == 2){
-			self._screenOffTimeout = 1800;
+			self._screenOffTimeout = 270;
+			self._screenOffDelayOnSteps = 150;
 		}
 		else if (aodPowerSaverLevel == 3){
-			self._screenOffTimeout = 300;
-			self._screenOffDelayOnSteps = 150;
+			self._screenOffTimeout = 90;
+			self._screenOffDelayOnSteps = 90;
+		}
+		else if (aodPowerSaverLevel == 4){
+			self._screenOffTimeout = 30;
+			self._screenOffDelayOnSteps = 15;
 		}
 
 		self._nexScreenOffTime = Time.now().value() + self._screenOffTimeout;
 
 	}
-	
+
 }

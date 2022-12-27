@@ -35,16 +35,18 @@
 			<listEntry value="2">@Strings.FloorsClimbed</listEntry>
 			<listEntry value="3">@Strings.ActiveMinutes</listEntry>
 			<listEntry value="4">@Strings.Notifications</listEntry>
-			<listEntry value="5">@Strings.HeartRate</listEntry>
-			<listEntry value="6">@Strings.Battery</listEntry>
+			<listEntry value="5">@Strings.Battery</listEntry>
+			<listEntry value="6">@Strings.HeartRate</listEntry>
 			<listEntry value="7">@Strings.BodyBattery</listEntry>
 			<listEntry value="8">@Strings.StressLevel</listEntry>
 			<listEntry value="9">@Strings.Respiration</listEntry>
-			<listEntry value="16">@Strings.Date</listEntry>
+			<listEntry value="10">@Strings.PulseOX</listEntry>
+			<listEntry value="11">@Strings.Calories</listEntry>
+			<listEntry value="12">@Strings.RecoveryTime</listEntry>
+			<listEntry value="21">@Strings.Date</listEntry>
 			<listEntry value="99">Debug</listEntry>
 		</settingConfig>
 	</setting>
-
 
 	<setting propertyKey="@Properties.LeftGaugeType" title="@Strings.LeftGaugeTitle">
 		<settingConfig type="list">
@@ -52,10 +54,11 @@
 			<listEntry value="2">@Strings.FloorsClimbed</listEntry>
 			<listEntry value="3">@Strings.ActiveMinutes</listEntry>
 			<listEntry value="4">@Strings.Notifications</listEntry>
-			<listEntry value="6">@Strings.Battery</listEntry>
+			<listEntry value="5">@Strings.Battery</listEntry>
 			<listEntry value="7">@Strings.BodyBattery</listEntry>
 			<listEntry value="8">@Strings.StressLevel</listEntry>
-			<listEntry value="10">Weather</listEntry>
+			<listEntry value="12">@Strings.RecoveryTime</listEntry>
+			<listEntry value="15">Weather</listEntry>
 			<listEntry value="0">@Strings.Off</listEntry>
 		</settingConfig>
 	</setting>
@@ -66,10 +69,11 @@
 			<listEntry value="2">@Strings.FloorsClimbed</listEntry>
 			<listEntry value="3">@Strings.ActiveMinutes</listEntry>
 			<listEntry value="4">@Strings.Notifications</listEntry>
-			<listEntry value="6">@Strings.Battery</listEntry>
+			<listEntry value="5">@Strings.Battery</listEntry>
 			<listEntry value="7">@Strings.BodyBattery</listEntry>
 			<listEntry value="8">@Strings.StressLevel</listEntry>
-			<listEntry value="10">Weather</listEntry>
+			<listEntry value="12">@Strings.RecoveryTime</listEntry>
+			<listEntry value="15">Weather</listEntry>
 			<listEntry value="0">@Strings.Off</listEntry>
 		</settingConfig>
 	</setting>
@@ -81,11 +85,14 @@
 			<listEntry value="2">@Strings.FloorsClimbed</listEntry>
 			<listEntry value="3">@Strings.ActiveMinutes</listEntry>
 			<listEntry value="4">@Strings.Notifications</listEntry>
-			<listEntry value="5">@Strings.HeartRate</listEntry>
-			<listEntry value="6">@Strings.Battery</listEntry>
+			<listEntry value="5">@Strings.Battery</listEntry>
+			<listEntry value="6">@Strings.HeartRate</listEntry>
 			<listEntry value="7">@Strings.BodyBattery</listEntry>
 			<listEntry value="8">@Strings.StressLevel</listEntry>
 			<listEntry value="9">@Strings.Respiration</listEntry>
+			<listEntry value="10">@Strings.PulseOX</listEntry>
+			<listEntry value="11">@Strings.Calories</listEntry>
+			<listEntry value="12">@Strings.RecoveryTime</listEntry>
 		</settingConfig>
 	</setting>
 
@@ -96,11 +103,14 @@
 			<listEntry value="2">@Strings.FloorsClimbed</listEntry>
 			<listEntry value="3">@Strings.ActiveMinutes</listEntry>
 			<listEntry value="4">@Strings.Notifications</listEntry>
-			<listEntry value="5">@Strings.HeartRate</listEntry>
-			<listEntry value="6">@Strings.Battery</listEntry>
+			<listEntry value="5">@Strings.Battery</listEntry>
+			<listEntry value="6">@Strings.HeartRate</listEntry>
 			<listEntry value="7">@Strings.BodyBattery</listEntry>
 			<listEntry value="8">@Strings.StressLevel</listEntry>
 			<listEntry value="9">@Strings.Respiration</listEntry>
+			<listEntry value="10">@Strings.PulseOX</listEntry>
+			<listEntry value="11">@Strings.Calories</listEntry>
+			<listEntry value="12">@Strings.RecoveryTime</listEntry>
 		</settingConfig>
 	</setting>
 
@@ -109,7 +119,7 @@
 			<listEntry value="1">@Strings.Steps</listEntry>
 			<listEntry value="2">@Strings.FloorsClimbed</listEntry>
 			<listEntry value="3">@Strings.ActiveMinutes</listEntry>
-			<listEntry value="6">@Strings.Battery</listEntry>
+			<listEntry value="5">@Strings.Battery</listEntry>
 			<listEntry value="7">@Strings.BodyBattery</listEntry>
 			<listEntry value="8">@Strings.StressLevel</listEntry>
 			<listEntry value="0">@Strings.Off</listEntry>
@@ -121,7 +131,7 @@
 			<listEntry value="1">@Strings.Steps</listEntry>
 			<listEntry value="2">@Strings.FloorsClimbed</listEntry>
 			<listEntry value="3">@Strings.ActiveMinutes</listEntry>
-			<listEntry value="6">@Strings.Battery</listEntry>
+			<listEntry value="5">@Strings.Battery</listEntry>
 			<listEntry value="7">@Strings.BodyBattery</listEntry>
 			<listEntry value="8">@Strings.StressLevel</listEntry>
 			<listEntry value="0">@Strings.Off</listEntry>

@@ -9,7 +9,7 @@ using Toybox.SensorHistory;
 using Toybox.Sensor;
 
 
-var gTheme as Theme;
+var gTheme as Theme?;
 
 
 enum /* DATA_TYPES */ {
@@ -19,13 +19,17 @@ enum /* DATA_TYPES */ {
 	DATA_TYPE_FLOORS_CLIMBED = 2,
 	DATA_TYPE_ACTIVE_MINUTES = 3,
 	DATA_TYPE_NOTIFICATIONS = 4,
-	DATA_TYPE_HEART_RATE = 5,
-	DATA_TYPE_BATTERY = 6,
+	DATA_TYPE_BATTERY = 5,
+	DATA_TYPE_HEART_RATE = 6,
 	DATA_TYPE_BODY_BATTERY = 7,
 	DATA_TYPE_STRESS_LEVEL = 8,
 	DATA_TYPE_RESPIRATION = 9,
-	DATA_TYPE_WEATHER = 10,
-	DATA_TYPE_DATE = 16,
+	DATA_TYPE_PULSE_OX = 10,
+	DATA_TYPE_CALORIES = 11,
+	DATA_TYPE_RECOVERY_TIME = 12,
+	DATA_TYPE_ALTITUDE = 13,
+	DATA_TYPE_WEATHER = 15,
+	DATA_TYPE_DATE = 21,
 	DATA_TYPE_DEBUG = 99,
 }
 
@@ -77,7 +81,7 @@ class RaVelFaceView extends WatchUi.WatchFace {
 		}
 	}
 
-	function onLayout(dc as Dc) as Void {
+	function onLayout(dc as Graphics.Dc) as Void {
 		setLayout(Rez.Layouts.WatchFace(dc));
 
 		var ravelOptions;
@@ -118,7 +122,7 @@ class RaVelFaceView extends WatchUi.WatchFace {
 
 	}
 
-	function onUpdate(dc as Dc) as Void {
+	function onUpdate(dc as Graphics.Dc) as Void {
 		//System.println("onUpdate");
 
 		if (!self._sleepTimeTracker.onUpdate()) {
@@ -154,7 +158,7 @@ class RaVelFaceView extends WatchUi.WatchFace {
 		if (!self._burnProtection) {
 			values = self.getValuesForDataType( self.mTopDataType );
 
-			if ( values[:isValid] ) {
+			if ( values[:value] != null ) {
 				var font = Graphics.FONT_LARGE;
 				var x = dc.getWidth()/2;
 				var y = mTime.getTopFieldY();
@@ -184,7 +188,7 @@ class RaVelFaceView extends WatchUi.WatchFace {
 		if (!self._burnProtection) {
 			values = self.getValuesForDataType(self.mBottomLeftDataType);
 
-			if ( values[:isValid] ) {
+			if ( values[:value] != null ) {
 				var font = Graphics.FONT_NUMBER_MEDIUM;
 
 				var x;
@@ -221,7 +225,7 @@ class RaVelFaceView extends WatchUi.WatchFace {
 		{
 			values = self.getValuesForDataType(self.mBottomRightDataType);
 
-			if ( values[:isValid] && (!self._burnProtection || values[:burnProtection]!=null)) {
+			if ( values[:value] != null && (!self._burnProtection || values[:burnProtection]!=null)) {
 				var font = Graphics.FONT_NUMBER_MILD;
 
 				var textDims = dc.getTextDimensions(values[:text], font);
@@ -296,7 +300,7 @@ class RaVelFaceView extends WatchUi.WatchFace {
 
 	}
 
-	function onPartialUpdate(dc as Dc) as Void{
+	function onPartialUpdate(dc as Graphics.Dc) as Void{
 		//System.println("onPartialUpdate");
 		mTime.drawSeconds(dc, /* isPartialUpdate */ true);
 	}
@@ -336,15 +340,15 @@ class RaVelFaceView extends WatchUi.WatchFace {
 		}
 	}
 
-	function onBackgroundSleepTime() as Void {
+	public function onBackgroundSleepTime() as Void {
 		self._sleepTimeTracker.onBackgroundSleepTime();
 	}
 
-	function onBackgroundWakeTime() as Void {
+	public function onBackgroundWakeTime() as Void {
 		self._sleepTimeTracker.onBackgroundWakeTime();
 	}
 
-	function onSettingsChanged() as Void {
+	public function onSettingsChanged() as Void {
 		self._lightDimmer.onSettingsChanged();
 		self._sleepTimeTracker.onSettingsChanged();
 		$.gTheme.onSettingsChanged();
@@ -380,13 +384,13 @@ class RaVelFaceView extends WatchUi.WatchFace {
 	}
 
 
-	function getValuesForDataType(type) {
+	public function getValuesForDataType(type as Number) {
 		var values = {
-			:isValid => true
 		};
 
 		var info = ActivityMonitor.getInfo();
 		var settings = System.getDeviceSettings();
+		var activityInfo, val=null;
 
 		switch (type) {
 			case DATA_TYPE_STEPS:
@@ -432,7 +436,7 @@ class RaVelFaceView extends WatchUi.WatchFace {
 				}
 				break;
 			case DATA_TYPE_HEART_RATE:
-				var activityInfo = Activity.getActivityInfo();
+				activityInfo = Activity.getActivityInfo();
 				if (activityInfo.currentHeartRate != null) {
 					values[:value] = activityInfo.currentHeartRate;
 				} else if (ActivityMonitor has :getHeartRateHistory) {
@@ -450,6 +454,7 @@ class RaVelFaceView extends WatchUi.WatchFace {
 				values[:value] = Math.floor(batteryLevel);
 				values[:max] = 100;
 				values[:text] = values[:value].format("%.0f");
+
 				if (batteryLevel > 85) {
 					values[:icon] = ICON_BATTERY_FULL;
 				}
@@ -473,48 +478,105 @@ class RaVelFaceView extends WatchUi.WatchFace {
 				}
 				break;
 
+			case DATA_TYPE_CALORIES:
+				values[:value] = info.calories;
+				values[:icon] = ICON_CALORIES;
+				break;
+
 			case DATA_TYPE_BODY_BATTERY:
 				if ((Toybox has :SensorHistory) && (Toybox.SensorHistory has :getBodyBatteryHistory)) {
-					var it = Toybox.SensorHistory.getBodyBatteryHistory({"period"=>1,"order"=>SensorHistory.ORDER_NEWEST_FIRST});
-					var sample = it.next();
+					var sample = Toybox.SensorHistory.getBodyBatteryHistory({"period"=>1,"order"=>SensorHistory.ORDER_NEWEST_FIRST}).next();
 					if (sample != null) {
 						values[:value] = sample.data;
+						values[:text] = sample.data.format("%.0f");
 						values[:max] = 100;
-						values[:text] = values[:value].format("%.0f");
 						values[:icon] = ICON_BODY_BATTERY;
 					}
 				}
 				break;
 			case DATA_TYPE_STRESS_LEVEL:
 				if ((Toybox has :SensorHistory) && (Toybox.SensorHistory has :getStressHistory)) {
-					var it = Toybox.SensorHistory.getStressHistory({"period"=>1,"order"=>SensorHistory.ORDER_NEWEST_FIRST});
-					var sample = it.next();
+					var sample = Toybox.SensorHistory.getStressHistory({"period"=>1,"order"=>SensorHistory.ORDER_NEWEST_FIRST}).next();
 					if (sample != null) {
 						values[:value] = sample.data;
+						values[:text] = sample.data.format("%.0f");
 						values[:max] = 100;
-						values[:text] = values[:value].format("%.0f");
 						values[:icon] = ICON_STRESS_LEVEL;
+					}
+				}
+				break;
+
+			case DATA_TYPE_PULSE_OX:
+				activityInfo = Activity.getActivityInfo();
+				if (activityInfo.currentOxygenSaturation != null) {
+					val = activityInfo.currentOxygenSaturation;
+				}
+				else if ((Toybox has :SensorHistory) && (Toybox.SensorHistory has :getOxygenSaturationHistory)) {
+					var sample = Toybox.SensorHistory.getOxygenSaturationHistory({"period"=>1,"order"=>SensorHistory.ORDER_NEWEST_FIRST}).next();
+					if (sample != null && sample.data != null) {
+						val = sample.data;
+					}
+				}
+				if (val != null) {
+					values[:value] = val;
+					values[:text] = val.format("%.0f");
+					values[:max] = 100;
+					values[:icon] = ICON_PULSE_OX;
+				}
+				break;
+
+			case DATA_TYPE_ALTITUDE:
+				if ((Toybox has :SensorHistory) && (Toybox.SensorHistory has :getElevationHistory)) {
+					var sample = Toybox.SensorHistory.getElevationHistory({"period"=>1,"order"=>SensorHistory.ORDER_NEWEST_FIRST}).next();
+					if (sample != null) {
+						var altitude = sample.data;
+						values[:value] = altitude;
+						if (settings.temperatureUnits == System.UNIT_STATUTE) {
+							altitude = Math.round( 3.28084 * altitude );
+						}
+						values[:text] = altitude.format("%.0f");
+						values[:icon] = ICON_ALTITUDE;
 					}
 				}
 				break;
 
 			case DATA_TYPE_RESPIRATION:
 				if (info has :respirationRate and info.respirationRate  != null) {
-					values[:value] = info.respirationRate ;
+					values[:value] = info.respirationRate;
 				}
 				values[:icon] = ICON_RESPIRATION;
+				break;
+
+			case DATA_TYPE_RECOVERY_TIME:
+				if (info has :timeToRecovery) {
+					values[:value] = info.timeToRecovery;
+					values[:max] = 72;
+					if ( info.timeToRecovery > 36 ) {
+						values[:valueColor] = Graphics.COLOR_ORANGE;
+					}
+					else if ( info.timeToRecovery > 24 ) {
+						values[:valueColor] = Graphics.COLOR_YELLOW;
+					}
+					else {
+						values[:valueColor] = Graphics.COLOR_GREEN;
+					}
+				}
 				break;
 
 			case DATA_TYPE_WEATHER:
 				{
 					var wCond= Weather.getCurrentConditions();
-					values[:value] = wCond.precipitationChance;
-					values[:max] = 100;
-					values[:text] = Lang.format("$1$°", [wCond.temperature] );
+						values[:value] = wCond.precipitationChance;
+						values[:max] = 100;
+						var temperature = wCond.temperature;
+						if (settings.temperatureUnits == System.UNIT_STATUTE) {
+							temperature = 32 + ( temperature * 9 + 2 )/ 5;
+						}
+						values[:text] = Lang.format("$1$°", [temperature] );
 				}
 				break;
 			case DATA_TYPE_DATE:
-				var now = Gregorian.info(Time.now(), Time.FORMAT_SHORT);
+				var now = Time.Gregorian.info(Time.now(), Time.FORMAT_SHORT);
 
 				var dow = [
 						"Su",
@@ -527,22 +589,22 @@ class RaVelFaceView extends WatchUi.WatchFace {
 						][now.day_of_week - 1];
 				//dow = dow.substring(0,2);
 
-				values[:value] = dow + " " + now.day.format("%d");
+				values[:text] = dow + " " + now.day.toString();
+				values[:value] = values[:text];
 				break;
 
 			case DATA_TYPE_DEBUG:
 				{
-					/*var wCond= Weather.getCurrentConditions();
-					values[:value] = wCond.precipitationChance;
-					values[:text] = Lang.format("$1$ $2$%", [wCond.temperature, wCond.precipitationChance] );*/
+					var wCond= Weather.getCurrentConditions();
+					var seconds = Time.now().value() - wCond.observationTime.value();
+					values[:max] = 24*3600;
+					values[:value] = seconds;
+					values[:text] = Lang.format("$1$", [wCond.condition] );
 				}
 				break;
 		}
 
-		if (values[:value]==null) {
-			values[:isValid] = false;
-		}
-		if (values[:text]==null && values[:isValid]) {
+		if (values[:text] == null && values[:value] != null) {
 			values[:text] = values[:value].toString();
 		}
 
@@ -555,7 +617,7 @@ class RaVelFaceView extends WatchUi.WatchFace {
 		if (!self._burnProtection && !sleepMode ) {
 			for (var i=0; i < 2; i++) {
 				var values = self.getValuesForDataType(self.mMeterTypes[i]);
-				self.mMeters[i].setValues(values[:isValid] ? values : null);
+				self.mMeters[i].setValues(values[:value] != null ? values : null);
 			}
 		}
 		else {
@@ -569,7 +631,7 @@ class RaVelFaceView extends WatchUi.WatchFace {
 				var values = self.getValuesForDataType(self.mGaugeTypes[i]);
 
 				var displayType = GAUGE_DISPLAY_OFF;
-				if (values[:isValid]) {
+				if (values[:value] != null) {
 					if (self._burnProtection || sleepMode) {
 						displayType = values[:burnProtection] == DISPLAY_ICON ? GAUGE_DISPLAY_ICON : GAUGE_DISPLAY_OFF;
 					}
@@ -592,7 +654,7 @@ class RaVelFaceView extends WatchUi.WatchFace {
 		/* time */
 		var show = true;
 		if (self.mSecondsDisplayMode == 2) {
-			if (System.getDeviceSettings().doNotDisturb ||sleepMode ) {
+			if (System.getDeviceSettings().doNotDisturb || sleepMode ) {
 				show = false;
 			}
 			self.mTime.setHideSeconds(!show);

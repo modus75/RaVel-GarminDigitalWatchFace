@@ -6,7 +6,7 @@
 	<property id="MinutesFontType" type="boolean">false</property>
   <property id="SecondsDisplayMode" type="number">2</property>
 
-	<property id="TopDataType" type="number">16</property>
+	<property id="TopDataType" type="number">21</property>
 
 	<property id="BottomLeftDataType" type="number">1</property>
 	<property id="BottomDataType" type="number">4</property>
@@ -16,7 +16,7 @@
 	<property id="GoalMeterStyle" type="number">0</property>
 
 	<property id="LeftGaugeType" type="number">0</property>
-	<property id="RightGaugeType" type="number">6</property>
+	<property id="RightGaugeType" type="number">5</property>
 
 	<property id="ShowAlarmIcon" type="boolean">true</property>
 	<property id="ShowDontDisturbIcon" type="boolean">true</property>
