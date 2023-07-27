@@ -29,7 +29,7 @@ class Theme
 
     function onSettingsChanged()
     {
-		var theme = getApp().getProperty("Theme");
+		var theme = Application.Properties.getValue("Theme");
 		var colors = [];
 
 		switch (theme) {

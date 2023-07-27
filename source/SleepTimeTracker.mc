@@ -3,6 +3,8 @@ import Toybox.Lang;
 
 class NullSleepTimeTracker {
 
+	public var SleepMode as Boolean = false;
+
 	function onShow() as Void {}
 
 	function onHide() as Void {}
@@ -15,139 +17,133 @@ class NullSleepTimeTracker {
 
 	function onBackgroundWakeTime() as Void {}
 
-	function onUpdate() as Boolean{
+	function onUpdate(now as Number) as Boolean{
 		return true;
 	}
 
-	public function getSleepMode() as Boolean {
-		return false;
-	}
+	public function unfreezeMorningAOD() as Void {}
+	public function unfreezeEveningAOD() as Void {}
 
-	public function onSettingsChanged() {}
+	public function onSettingsChanged() as Void {}
 }
 
 
 class SleepTimeTracker {
 
-	enum {
-		LOPOWER_F   = 0,
-		VISIBLE_F   = 1,
-		NODISTURB_F = 2,
-		BGSLEEP_F   = 3,
+	private const WAKE_UP_TIMES = "WakeUpTimes";
+	private const SLEEP_TIMES = "SleepTimes";
 
-		NB_FLAGS = 4
-	}
+	public var SleepMode as Boolean = false;
 
-	const LOPOWER_M   = 1 << LOPOWER_F;
-	const VISIBLE_M   = 1 << VISIBLE_F;
-	const NODISTURB_M = 1 << NODISTURB_F;
-	const BGSLEEP_M   = 1 << BGSLEEP_F;
+	private var _loPower as Boolean = false;
 
-	private var _flags as Number;
-	private var _lastChangeTimes = new [NB_FLAGS];
+	private var _wakeUpTimes as Array<Number>;
+	private var _nextWakeUpTime as Number = 0;
+	private var _sleepTimes as Array<Number>;
+	private var _nextSleepTime as Number = 0;
 
-	private var _freezeAlwaysOnDisplay;
-	private var _freezeAlwaysOnDisplaySteps;
-	private var _freezeAlwaysOnDisplayShowEventCount;
+	private var _aodOffBeforeSleep as Number = 0;
+
+	private var _freezeMorningAOD;
+	private var _freezeMorningAODSteps;
+	private var _freezeMorningAODShowEventCount;
 
 	private var _screenOffTimeout as Number;
-	private var _screenOffDelayOnSteps as Number;
 	private var _nexScreenOffTime as Number;
 
-	private var _stepTracker as StepTracker;
 
 	function initialize() {
-		self._freezeAlwaysOnDisplay = false;
-		self._freezeAlwaysOnDisplaySteps = 0;
-		self._freezeAlwaysOnDisplayShowEventCount = 0;
+		self._freezeMorningAOD = false;
+		self._freezeMorningAODSteps = 0;
+		self._freezeMorningAODShowEventCount = 0;
 
 		var now = Time.now().value();
 		self._screenOffTimeout = 86400;
 		self._nexScreenOffTime = now + 86400;
 
-		self._screenOffDelayOnSteps = 0;
-
-		self._flags = 0;
-		for (var i=0; i<NB_FLAGS; i++ ) {
-			self._lastChangeTimes[i] = 0;
+		self._wakeUpTimes = Application.Storage.getValue(WAKE_UP_TIMES);
+		if (self._wakeUpTimes == null) {
+			self._wakeUpTimes = new [7];
 		}
-		self._stepTracker = new StepTracker();
+
+		self._sleepTimes = Application.Storage.getValue(SLEEP_TIMES);
+		if (self._sleepTimes == null) {
+			self._sleepTimes = new [7];
+		}
+
+		self.computeNextWakeUpTime( new Time.Moment(now) );
+		self.computeNextSleepTime( new Time.Moment(now) );
 	}
 
 	function onShow() as Void {
-		self._freezeAlwaysOnDisplayShowEventCount++;
-		setMask(VISIBLE_M | NODISTURB_M, VISIBLE_M | (System.getDeviceSettings().doNotDisturb ? NODISTURB_M : 0) );
+		self._freezeMorningAODShowEventCount++;
+		self.checkUnfreezeMorningAOD();
 	}
 
 	function onHide() as Void {
-		setMask(VISIBLE_M | NODISTURB_M, (System.getDeviceSettings().doNotDisturb ? NODISTURB_M : 0) );
-		delayScreenOffTime( self._lastChangeTimes[VISIBLE_F] + 60 );
+		self.delayScreenOffTime( Time.now().value() + 60 );
 	}
 
 	function onExitSleep() as Void {
-		setMask(LOPOWER_M | NODISTURB_M, (System.getDeviceSettings().doNotDisturb ? NODISTURB_M : 0) );
+		self._loPower = false;
 	}
 
 	function onEnterSleep() as Void {
-		setMask(LOPOWER_M | NODISTURB_M, LOPOWER_M | (System.getDeviceSettings().doNotDisturb ? NODISTURB_M : 0) );
-		self._nexScreenOffTime = self._lastChangeTimes[LOPOWER_F] + self._screenOffTimeout;
+		self._loPower = true;
+		self._nexScreenOffTime = Time.now().value() + self._screenOffTimeout;
 	}
 
 	function onBackgroundSleepTime() as Void {
-		setMask(BGSLEEP_M | NODISTURB_M, BGSLEEP_M | (System.getDeviceSettings().doNotDisturb ? NODISTURB_M : 0) );
+		var now = Time.now();
+		if ( self.updateSleepEventSchedule(self._sleepTimes, now) ) {
+			Application.Storage.setValue( SLEEP_TIMES, self._sleepTimes);
+		}
+
+		self.computeNextWakeUpTime( now );
+		self.computeNextSleepTime( now.add(new Time.Duration(60)) );
 	}
 
 	function onBackgroundWakeTime() as Void {
-		setMask(BGSLEEP_M | NODISTURB_M, (System.getDeviceSettings().doNotDisturb ? NODISTURB_M : 0) );
-	}
-
-	public function onUpdate() {
-
-		var doNotDisturb = System.getDeviceSettings().doNotDisturb;
-		setMask(NODISTURB_M, (doNotDisturb ? NODISTURB_M : 0) );
-
-		if ( !doNotDisturb && ( (self._flags & (BGSLEEP_M|LOPOWER_M)) == (BGSLEEP_M|LOPOWER_M) ) ) {
-			// doNotDisturb changed to off - maybe first redraws in the morning but just before wake up time is sent in backround ?
-			var now = Time.now().value();
-
-			if ( now - self.getLastChangeTime(NODISTURB_M) < 10 ) {
-				return false;
-			}
+		var now = Time.now();
+		if ( self.updateSleepEventSchedule(self._wakeUpTimes, now) ) {
+			Application.Storage.setValue( WAKE_UP_TIMES, self._wakeUpTimes);
 		}
 
-		if (self._freezeAlwaysOnDisplay && !self.checkUnfreezeAlwaysOnDisplay()) {
-			 if ( (self._flags & (BGSLEEP_M|NODISTURB_M|LOPOWER_M)) == LOPOWER_M ) {
+		self.computeNextWakeUpTime( now.add(new Time.Duration(60)) );
+		self.computeNextSleepTime( now );
+
+		self._freezeMorningAOD = true;
+		self._freezeMorningAODSteps = ActivityMonitor.getInfo().steps;
+		self._freezeMorningAODShowEventCount = 0;
+	}
+
+
+	public function onUpdate(now as Number) as Boolean{
+
+		var dnd = System.getDeviceSettings().doNotDisturb;
+		self.SleepMode = dnd;
+
+		if (now - self._nextWakeUpTime >=0 && now - self._nextWakeUpTime <= 5) {
+			return false;
+		}
+
+		if ( self._loPower ) {
+
+			if (self._freezeMorningAOD && !self.checkUnfreezeMorningAOD()) {
+				return false;
+			}
+
+			if ( now + self._aodOffBeforeSleep > self._nextSleepTime && now < self._nextSleepTime ) {
 				return false;
 			 }
 		}
 
-		if ( self._flags & (LOPOWER_M) == LOPOWER_M ) {
-			var now = Time.now().value();
+
+		if ( self._loPower ) {
 			var secBoundary = now % 60;
-			if ( secBoundary % 60 == 0) {
 
-				if ( self._stepTracker.poll( now ) ) {
-
-					if (self._stepTracker.PeriodSteps >= self._stepTracker.AvgPeriodSteps + 15 ) {
-						var delta = ( self._stepTracker.PeriodSteps - self._stepTracker.AvgPeriodSteps ) / self._stepTracker.PeriodSteps;
-						if (delta > 0.2) {
-							self.delayScreenOffTime( now + Math.round( self._screenOffDelayOnSteps * delta ) );
-						}
-						return true;
-					}
-
-					if (self._stepTracker.PeriodSteps <= self._stepTracker.AvgPeriodSteps - 15 ) {
-						var delta = ( - self._stepTracker.PeriodSteps + self._stepTracker.AvgPeriodSteps ) / self._stepTracker.AvgPeriodSteps;
-						if (delta > 0.2) {
-							self.delayScreenOffTime( now + Math.round( self._screenOffDelayOnSteps * 0.8 * delta ) );
-						}
-						return true;
-					}
-
-				}
-			}
-			else if ( secBoundary >= 2) {
-				/* as of 2022-10
+			if ( secBoundary >= 2) {
+				/* as of 2023-01
 				 -  in wrist gesture on draw is called on small movements even if the full high power mode is not triggered
 				 - when a message is received there is a bug and draw is called every second until a hi power mode is triggered*/
 				self.delayScreenOffTime( now + 1 );
@@ -161,93 +157,94 @@ class SleepTimeTracker {
 		return true;
 	}
 
-	public function getSleepMode() as Boolean {
-		return (self._flags & (BGSLEEP_M|NODISTURB_M) ) == (BGSLEEP_M|NODISTURB_M);
+	private function updateSleepEventSchedule(schedule as Array<Number>, now as Time.Moment) as Boolean
+	{
+		var nowInfo = Time.Gregorian.info( now, Time.FORMAT_SHORT );
+		var eventTIme = nowInfo.hour * 60 + nowInfo.min;
+		if ( !eventTIme.equals( schedule[ nowInfo.day_of_week - 1] )) {
+			if (schedule[ nowInfo.day_of_week - 1] == null) {
+				if (nowInfo.day_of_week==1 || nowInfo.day_of_week==6) {
+					schedule[0] = eventTIme;
+					schedule[6] = eventTIme;
+				} else {
+					for (var i=1; i<=5; i++) {
+						schedule[i] = eventTIme;
+					}
+				}
+			}
+			else {
+				schedule[ nowInfo.day_of_week - 1] = eventTIme;
+			}
+			return true;
+		}
+		return false;
 	}
 
 
-	private function setMask(mask as Number, maskValue as Number) as Void {
-
-		mask = (self._flags ^ maskValue) & mask; // keep in mask only bits that changed
-
-		if  (mask != 0) {
-			maskValue &= mask;
-
-			var prevFlags = self._flags;
-
-			self._flags = ( self._flags & ~mask) | maskValue;
-
-			var now = Time.now().value();
-			for (var i=0; i < NB_FLAGS; i++) {
-				if ( (1<<i) & mask) {
-					self._lastChangeTimes[i] = now;
+	private function computeNextWakeUpTime(now as Time.Moment) as Void
+	{
+		var time = computeNextSleepEventTime( self._wakeUpTimes, now);
+		if (time != null)
+		{
+			self._nextWakeUpTime = time;
 				}
 			}
 
-			processFlagsChanged(mask, prevFlags, now);
+	private function computeNextSleepTime(now as Time.Moment) as Void
+	{
+		var time = computeNextSleepEventTime( self._sleepTimes, now);
+		if (time != null)
+		{
+			self._nextSleepTime = time;
 		}
 	}
 
-	private function getLastChangeTime(mask as Number) {
-		var last = 0;
-		for (var i=0; i< NB_FLAGS; i++) {
-			if (mask & (1<<i) ) {
-				if (last < self._lastChangeTimes[i]) {
-					last = self._lastChangeTimes[i];
-				}
+	private function computeNextSleepEventTime(schedule as Array<Number>, now as Time.Moment) as Number?
+	{
+		var day = Time.today().value();
+		var info = Time.Gregorian.info(now, Time.FORMAT_SHORT);
+		var wakeUpTime = schedule[ info.day_of_week - 1];
+		if (wakeUpTime != null && wakeUpTime < info.hour * 60 + info.min) {
+			wakeUpTime = schedule[ info.day_of_week % 7 ];
+			day += Time.Gregorian.SECONDS_PER_DAY;
 			}
+
+		if (wakeUpTime != null) {
+			return day + wakeUpTime * 60;
 		}
-		return last;
-	}
-
-	private function processFlagsChanged(mask as Number, prevFlags as Number, now) {
-
-		// if ( (now/3600)%24 <= 8 && (now/60) % 60 >=24 && (now/60) % 60 <= 40 ) {
-		// 	TRACE( "flagsChanged " + self._flags.format("%o"));
-		// }
-
-		if ( mask & (BGSLEEP_M|NODISTURB_M) != 0) {
-
-			var dimNow = self._flags & (BGSLEEP_M|NODISTURB_M) == (BGSLEEP_M|NODISTURB_M);
-			var dimPrev= prevFlags   & (BGSLEEP_M|NODISTURB_M) == (BGSLEEP_M|NODISTURB_M);
-
-			if (dimNow != dimPrev) {
-				TRACE("Night dimmer = " + dimNow.toString() );
-				$.gTheme.setLightFactor2(dimNow ? 0.85 : 1.0);
-			}
-		}
-
-		if (!self._freezeAlwaysOnDisplay) {
-			if ( mask & (BGSLEEP_M|NODISTURB_M) != 0 ) {
-				if (self._flags & (BGSLEEP_M|NODISTURB_M) == 0 ) {
-
-					if (now - self.getLastChangeTime(BGSLEEP_M) <= 10 &&
-						now - self.getLastChangeTime(NODISTURB_M) <= 10 ) {
-							self._freezeAlwaysOnDisplay = true;
-							self._freezeAlwaysOnDisplaySteps = ActivityMonitor.getInfo().steps;
-							self._freezeAlwaysOnDisplayShowEventCount = 0;
-						}
-				}
-			}
-		}
-		else {
-			checkUnfreezeAlwaysOnDisplay();
-		}
+		return 0/*null*/;
 	}
 
 
-	private function checkUnfreezeAlwaysOnDisplay() as Boolean {
-		if (self._freezeAlwaysOnDisplayShowEventCount > 3 ) {
-			self._freezeAlwaysOnDisplay = false;
-			TRACE("Unfreeze wake time show events = " + self._freezeAlwaysOnDisplayShowEventCount.toString() );
+	private function processFlagsChanged(mask as Number, prevFlags as Number) {
+		if (self._freezeMorningAOD) {
+			checkUnfreezeMorningAOD();
+			}
+		}
+
+	public function unfreezeMorningAOD() as Void
+	{
+		self._freezeMorningAOD = false;
+		}
+
+	public function unfreezeEveningAOD() as Void
+	{
+		var now = Time.now().value();
+		if ( now + self._aodOffBeforeSleep > self._nextSleepTime && now < self._nextSleepTime ) {
+			self._nextSleepTime = self._nextSleepTime + self._aodOffBeforeSleep;
+		}
+	}
+
+	private function checkUnfreezeMorningAOD() as Boolean {
+		if (self._freezeMorningAODShowEventCount > 3 ) {
+			self._freezeMorningAOD = false;
 			return true;
 		}
 
 		var steps = ActivityMonitor.getInfo().steps;
-		if (steps < self._freezeAlwaysOnDisplaySteps ||
-			steps > self._freezeAlwaysOnDisplaySteps + 10) {
-			self._freezeAlwaysOnDisplay = false;
-			TRACE( Lang.format("Unfreeze wake time steps $1$ $2$", [self._freezeAlwaysOnDisplaySteps , steps] ) );
+		if (steps < self._freezeMorningAODSteps ||
+			steps > self._freezeMorningAODSteps + 10) {
+			self._freezeMorningAOD = false;
 			return true;
 		}
 		return false;
@@ -260,27 +257,24 @@ class SleepTimeTracker {
 	}
 
 	public function onSettingsChanged() {
+		self._aodOffBeforeSleep =  Application.Properties.getValue("AODOffBeforeSleep");
+
 		var aodPowerSaverLevel = Application.Properties.getValue("AODPowerSaver");
 		
 		if (aodPowerSaverLevel == 0) {
 			self._screenOffTimeout = 86400;
-			self._screenOffDelayOnSteps = 600;
 		}
 		else if (aodPowerSaverLevel == 1){
 			self._screenOffTimeout = 3600;
-			self._screenOffDelayOnSteps = 3600;
 		}
 		else if (aodPowerSaverLevel == 2){
 			self._screenOffTimeout = 270;
-			self._screenOffDelayOnSteps = 150;
 		}
 		else if (aodPowerSaverLevel == 3){
 			self._screenOffTimeout = 90;
-			self._screenOffDelayOnSteps = 90;
 		}
 		else if (aodPowerSaverLevel == 4){
 			self._screenOffTimeout = 30;
-			self._screenOffDelayOnSteps = 15;
 		}
 
 		self._nexScreenOffTime = Time.now().value() + self._screenOffTimeout;

@@ -64,7 +64,6 @@ class RaVelFaceView extends WatchUi.WatchFace {
 	private var mLastBurnOffsets = [0,0];
 	private var mLastBurnOffsetsChangedMinute = 0;
 
-	private var _lightDimmer;
 	private var _sleepTimeTracker;
 
 	function initialize() {
@@ -72,11 +71,9 @@ class RaVelFaceView extends WatchUi.WatchFace {
 		$.gTheme = new Theme();
 
 		if ( System.getDeviceSettings() has :requiresBurnInProtection && System.getDeviceSettings().requiresBurnInProtection) {
-			self._lightDimmer = new TimeBasedLightDimmer(); // should test for amoled
 			self._sleepTimeTracker = new SleepTimeTracker();
 		}
 		else {
-			self._lightDimmer = new NullLightDimmer();
 			self._sleepTimeTracker = new NullSleepTimeTracker();
 		}
 	}
@@ -125,7 +122,9 @@ class RaVelFaceView extends WatchUi.WatchFace {
 	function onUpdate(dc as Graphics.Dc) as Void {
 		//System.println("onUpdate");
 
-		if (!self._sleepTimeTracker.onUpdate()) {
+		var now = Time.now().value();
+
+		if  (!self._sleepTimeTracker.onUpdate(now) ) {
 			dc.setColor(Graphics.COLOR_TRANSPARENT, $.gTheme.BackgroundColor);
 			dc.clear();
 			return;
@@ -134,12 +133,11 @@ class RaVelFaceView extends WatchUi.WatchFace {
 		// Clear any partial update clipping.
 		dc.clearClip();
 
-		var now = System.getClockTime();
-		self._lightDimmer.check( now );
+		var clockTime = System.getClockTime();
 
-		if (self._burnProtection && self.mLastBurnOffsetsChangedMinute != now.min) {
+		if (self._burnProtection && self.mLastBurnOffsetsChangedMinute != clockTime.min) {
 			self.mLastBurnOffsets = [Math.rand() % 16 - 8, Math.rand() % 16 - 8];
-			self.mLastBurnOffsetsChangedMinute = now.min;
+			self.mLastBurnOffsetsChangedMinute = clockTime.min;
 			for (var i=0; i < 2; i++) {
 				if (self.mGauges[i]) {
 					self.mGauges[i].setXYOffset(self.mLastBurnOffsets[0], self.mLastBurnOffsets[1]);
@@ -348,19 +346,25 @@ class RaVelFaceView extends WatchUi.WatchFace {
 		self._sleepTimeTracker.onBackgroundWakeTime();
 	}
 
+	public function onPress(x as Number, y as Number) as Lang.Boolean
+	{
+		self._sleepTimeTracker.unfreezeMorningAOD();
+
+		self._sleepTimeTracker.unfreezeEveningAOD();
+
+		return false;
+	}
+
 	public function onSettingsChanged() as Void {
-		self._lightDimmer.onSettingsChanged();
 		self._sleepTimeTracker.onSettingsChanged();
 		$.gTheme.onSettingsChanged();
 
-		var theme = getApp().getProperty("Theme");
+		self.mMeterTypes[0] = Application.Properties.getValue("LeftGoalType");
+		self.mMeterTypes[1] = Application.Properties.getValue("RightGoalType");
+		self.mGaugeTypes[0] = Application.Properties.getValue("LeftGaugeType");
+		self.mGaugeTypes[1] = Application.Properties.getValue("RightGaugeType");
 
-		self.mMeterTypes[0] = Application.getApp().getProperty("LeftGoalType");
-		self.mMeterTypes[1] = Application.getApp().getProperty("RightGoalType");
-		self.mGaugeTypes[0] = Application.getApp().getProperty("LeftGaugeType");
-		self.mGaugeTypes[1] = Application.getApp().getProperty("RightGaugeType");
-
-		self.mSecondsDisplayMode = Application.getApp().getProperty("SecondsDisplayMode");
+		self.mSecondsDisplayMode = Application.Properties.getValue("SecondsDisplayMode");
 
 		if (mTime != null) {
 			mMeters[0].onSettingsChanged();
@@ -374,13 +378,13 @@ class RaVelFaceView extends WatchUi.WatchFace {
 		}
 
 
-		mTopDataType = Application.getApp().getProperty("TopDataType");
-		mBottomLeftDataType = Application.getApp().getProperty("BottomLeftDataType");
-		mBottomRightDataType = Application.getApp().getProperty("BottomDataType");
+		mTopDataType = Application.Properties.getValue("TopDataType");
+		mBottomLeftDataType = Application.Properties.getValue("BottomLeftDataType");
+		mBottomRightDataType = Application.Properties.getValue("BottomDataType");
 
-		mShowAlarmIcon = Application.getApp().getProperty("ShowAlarmIcon");
-		mShowDontDisturbIcon = Application.getApp().getProperty("ShowDontDisturbIcon");
-		mShowNotificationIcon = Application.getApp().getProperty("ShowNotificationIcon");
+		mShowAlarmIcon = Application.Properties.getValue("ShowAlarmIcon");
+		mShowDontDisturbIcon = Application.Properties.getValue("ShowDontDisturbIcon");
+		mShowNotificationIcon = Application.Properties.getValue("ShowNotificationIcon");
 	}
 
 
@@ -422,7 +426,7 @@ class RaVelFaceView extends WatchUi.WatchFace {
 					else {
 						values[:icon] = ICON_NOTIFICATIONS_FULL;
 						values[:max] = 1;
-						if (self._burnProtection || self._sleepTimeTracker.getSleepMode()) {
+						if (self._burnProtection || self._sleepTimeTracker.SleepMode) {
 							values[:valueColor] = $.gTheme.ForeColor;
 							values[:burnProtection] = DISPLAY_ICON;
 						}
@@ -453,7 +457,7 @@ class RaVelFaceView extends WatchUi.WatchFace {
 				var batteryInDays = System.getSystemStats().batteryInDays;
 				values[:value] = Math.floor(batteryLevel);
 				values[:max] = 100;
-				values[:text] = values[:value].format("%.0f");
+				values[:text] = batteryLevel.format("%.0f");
 
 				if (batteryLevel > 85) {
 					values[:icon] = ICON_BATTERY_FULL;
@@ -579,13 +583,7 @@ class RaVelFaceView extends WatchUi.WatchFace {
 				var now = Time.Gregorian.info(Time.now(), Time.FORMAT_SHORT);
 
 				var dow = [
-						"Su",
-						"Mo",
-						"Tu",
-						"We",
-						"Th",
-						"Fr",
-						"Sa"
+						"Su", "Mo", "Tu", "We", "Th", "Fr", "Sa"
 						][now.day_of_week - 1];
 				//dow = dow.substring(0,2);
 
@@ -612,7 +610,7 @@ class RaVelFaceView extends WatchUi.WatchFace {
 	}
 
 	private function updateDrawables() {
-		var sleepMode = self._sleepTimeTracker.getSleepMode();
+		var sleepMode = self._sleepTimeTracker.SleepMode;
 		/* meters */
 		if (!self._burnProtection && !sleepMode ) {
 			for (var i=0; i < 2; i++) {

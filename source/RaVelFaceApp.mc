@@ -7,7 +7,7 @@ import Toybox.Background;
 
 (:background)
 class RaVelFaceApp extends Application.AppBase {
-	var mView as RaVelFaceView?;
+	var View as RaVelFaceView?;
 	
 	function initialize() {
 		AppBase.initialize();
@@ -35,13 +35,13 @@ class RaVelFaceApp extends Application.AppBase {
 		else {
 			TRACE("[E] App: no ServiceDelegate");
 		}
-
-		mView = new RaVelFaceView();
-		return [ mView ] as Array<Views or InputDelegates>;
+		self.View = new RaVelFaceView();
+		var delegate = new RaVelWatchFaceDelegate();
+		return [ self.View, delegate ] as Array<Views or InputDelegates>;
 	}
 
 	function onSettingsChanged() as Void {
-		mView.onSettingsChanged();
+		self.View.onSettingsChanged();
 		WatchUi.requestUpdate();
 	}
 
@@ -52,10 +52,10 @@ class RaVelFaceApp extends Application.AppBase {
 	 function onBackgroundData(data) as Void {
 		TRACE("App: onBackgroundData " + data.toString() );
 		if (data==0) {
-			mView.onBackgroundSleepTime();
+			self.View.onBackgroundSleepTime();
 		}
 		else if (data==1){
-			mView.onBackgroundWakeTime();
+			self.View.onBackgroundWakeTime();
 		}
 	 }
 }

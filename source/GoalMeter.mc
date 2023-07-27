@@ -1,6 +1,6 @@
 using Toybox.WatchUi as Ui;
 using Toybox.System as Sys;
-using Toybox.Application as App;
+import Toybox.Application;
 using Toybox.Graphics;
 
 // const MIN_WHOLE_SEGMENT_HEIGHT = 5;
@@ -107,7 +107,7 @@ class GoalMeter extends Ui.Drawable {
 
 		// #18 Only read separator width from layout if multi segment style is selected.
 		// #62 Or if filled segment style is selected.
-		self._goalMeterStyle = App.getApp().getProperty("GoalMeterStyle");
+		self._goalMeterStyle = Application.Properties.getValue("GoalMeterStyle");
 		if ((self._goalMeterStyle == 0 /* ALL_SEGMENTS */) || (self._goalMeterStyle == 3 /* FILLED_SEGMENTS */)) {
 
 			// Force recalculation of mSegments in setValues() if mSeparator is about to change.

@@ -315,9 +315,9 @@ class ThickThinTime extends Ui.Drawable {
 
 	
 	function onSettingsChanged() {
-		self._debugLowPowerMode = getApp().getProperty("DebugLowPowerMode");
-		var hoursFontType = getApp().getProperty("HoursFontType");
-		var minutesFontType = getApp().getProperty("MinutesFontType");
+		self._debugLowPowerMode = Application.Properties.getValue("DebugLowPowerMode");
+		var hoursFontType = Application.Properties.getValue("HoursFontType");
+		var minutesFontType = Application.Properties.getValue("MinutesFontType");
 
 		self._hourFonts = hoursFontType ? self._smallFonts : self._largeFonts;
 		self._minuteFonts = minutesFontType ? self._smallFonts : self._largeFonts;
@@ -338,7 +338,7 @@ class ThickThinTime extends Ui.Drawable {
 			self.mMinutesAdjustX += 5;
 		}
 
-		var aodPowerSaverLevel = getApp().getProperty("AODPowerSaver");
+		var aodPowerSaverLevel = Application.Properties.getValue("AODPowerSaver");
 		if (aodPowerSaverLevel == 0) {
 			_aodPowerProfile.setFontDowngradeDelay(1440, 1440);
 			_aodPowerProfile.setHourAlpha(0, 0, 0);
