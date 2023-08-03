@@ -1,30 +1,33 @@
-<layout id="WatchFace">
-    <drawable class="Background" />
-    
-   
-	<drawable id="LeftGoalMeter" class="GoalMeter">
-			<param name="side">:left</param>
-			<param name="stroke">6</param>
-			<param name="height">160</param>
-			<param name="separator">2</param>
-	</drawable>
+<resources>
 
-	<drawable id="RightGoalMeter" class="GoalMeter">
-			<param name="side">:right</param>
-			<param name="stroke">6</param>
-			<param name="height">160</param>
-			<param name="separator">2</param>
-	</drawable>
+	<jsonData id="ravelOptions">{"displayMeterIcons":true,
+	"time": {
+		"adjustY":-13,
 
-	<drawable id="Time" class="ThickThinTime">
-		<param name="adjustY">-13</param>
-		<param name="secondsX">159</param>
-		<param name="secondsY">174</param>
-		<param name="secondsClipWidth">48</param>
-		<param name="secondsClipHeight">34</param>
-		
-		<param name="topFieldY">41</param>
-		<param name="leftFieldAdjustX">6</param>
-	</drawable>
+		"secondsX":159,
+		"secondsY":174,
+		"secondsClipHeight":34,
+
+		"topFieldY":41
+	},
+	"gauges":{
+		"stroke":2,
+		"radius":18,
+		"locX":60
+	},
+	"meters":{
+		"stroke":6,
+		"height":160,
+		"separator":2
+	}
+}</jsonData>
+
+	<font id="TimeFont" filename="../fonts/ArialNarrow-114-Bold.fnt" antialias="true"/>
+	<font id="TimeSmallFont" filename="../fonts/ArialNarrow-96-Bold.fnt" antialias="true"/>
 	
-</layout>
+	<font id="IconsFont" filename="../fonts/connect20.fnt" antialias="true"/>
+
+	<layout id="WatchFace">
+	</layout>
+
+</resources>

@@ -39,7 +39,10 @@
 	<string id="PulseOX">Pulse OX</string>
 	<string id="Calories">Calories</string>
 	<string id="RecoveryTime">Recovery time</string>
+	<string id="Altitude">Altitude</string>
+	<string id="Weather">Weather</string>
 	<string id="Date">Date</string>
+	<string id="DayOfMonth">Day of month</string>
 	<string id="Battery">Battery</string>
 
 	<string id="AllSegmentsMerged">All Segments (Merged)</string>

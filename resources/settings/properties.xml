@@ -6,28 +6,24 @@
 	<property id="MinutesFontType" type="boolean">false</property>
   <property id="SecondsDisplayMode" type="number">2</property>
 
-	<property id="TopDataType" type="number">21</property>
+	<property id="TopDataType" type="number">7</property>
 
-	<property id="BottomLeftDataType" type="number">1</property>
-	<property id="BottomDataType" type="number">4</property>
+	<property id="BottomLeftDataType" type="number">2</property>
+	<property id="BottomDataType" type="number">17</property>
 
-	<property id="LeftGoalType" type="number">1</property>
-	<property id="RightGoalType" type="number">2</property>
+	<property id="LeftGoalType" type="number">4</property>
+	<property id="RightGoalType" type="number">1</property>
 	<property id="GoalMeterStyle" type="number">0</property>
 
-	<property id="LeftGaugeType" type="number">0</property>
-	<property id="RightGaugeType" type="number">5</property>
+	<property id="LeftGaugeType" type="number">8</property>
+	<property id="RightGaugeType" type="number">22</property>
 
 	<property id="ShowAlarmIcon" type="boolean">true</property>
 	<property id="ShowDontDisturbIcon" type="boolean">true</property>
 	<property id="ShowNotificationIcon" type="boolean">false</property>
 
-	<property id="LightDimmerStartTime" type="number">2030</property>
-	<property id="LightDimmerEndTime" type="number">745</property>
-
-	<property id="LightDimmerWEEndTime" type="number">930</property>
-
 	<property id="AODPowerSaver" type="number">1</property>
+	<property id="AODOffBeforeSleep" type="number">0</property>
 
 	<property id="DebugLowPowerMode" type="boolean">false</property>
 </properties>

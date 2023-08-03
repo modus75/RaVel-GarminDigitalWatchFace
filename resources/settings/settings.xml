@@ -30,110 +30,137 @@
 
 	<setting propertyKey="@Properties.TopDataType" title="@Strings.TopDataTypeTitle">
 		<settingConfig type="list">
-			<listEntry value="0">@Strings.Off</listEntry>
-			<listEntry value="1">@Strings.Steps</listEntry>
-			<listEntry value="2">@Strings.FloorsClimbed</listEntry>
-			<listEntry value="3">@Strings.ActiveMinutes</listEntry>
-			<listEntry value="4">@Strings.Notifications</listEntry>
-			<listEntry value="5">@Strings.Battery</listEntry>
-			<listEntry value="6">@Strings.HeartRate</listEntry>
-			<listEntry value="7">@Strings.BodyBattery</listEntry>
-			<listEntry value="8">@Strings.StressLevel</listEntry>
-			<listEntry value="9">@Strings.Respiration</listEntry>
-			<listEntry value="10">@Strings.PulseOX</listEntry>
-			<listEntry value="11">@Strings.Calories</listEntry>
-			<listEntry value="12">@Strings.RecoveryTime</listEntry>
-			<listEntry value="21">@Strings.Date</listEntry>
-			<listEntry value="99">Debug</listEntry>
+				<listEntry value="0">@Strings.Off</listEntry>
+				<listEntry value="1">@Strings.Battery</listEntry>
+				<listEntry value="17">@Strings.Notifications</listEntry>
+				<listEntry value="2">@Strings.Steps</listEntry>
+				<listEntry value="4">@Strings.FloorsClimbed</listEntry>
+				<listEntry value="5">@Strings.ActiveMinutes</listEntry>
+				<listEntry value="18">@Strings.HeartRate</listEntry>
+				<listEntry value="22">@Strings.StressLevel</listEntry>
+				<listEntry value="23">@Strings.BodyBattery</listEntry>
+				<listEntry value="35">@Strings.PulseOX</listEntry>
+				<listEntry value="36">@Strings.Respiration</listEntry>
+				<listEntry value="3">@Strings.Calories</listEntry>
+				<listEntry value="21">@Strings.RecoveryTime</listEntry>
+				<listEntry value="15">@Strings.Altitude</listEntry>
+				<listEntry value="8">@Strings.Weather</listEntry>
+				<listEntry value="7">@Strings.Date</listEntry>
+				<listEntry value="98">@Strings.DayOfMonth</listEntry>
+				<listEntry value="99">Seconds</listEntry>
+				<listEntry value="101">Debug</listEntry>
+				<listEntry value="102">Debug 2</listEntry>
+				<listEntry value="103">Debug 3</listEntry>
 		</settingConfig>
 	</setting>
 
 	<setting propertyKey="@Properties.LeftGaugeType" title="@Strings.LeftGaugeTitle">
 		<settingConfig type="list">
-			<listEntry value="1">@Strings.Steps</listEntry>
-			<listEntry value="2">@Strings.FloorsClimbed</listEntry>
-			<listEntry value="3">@Strings.ActiveMinutes</listEntry>
-			<listEntry value="4">@Strings.Notifications</listEntry>
-			<listEntry value="5">@Strings.Battery</listEntry>
-			<listEntry value="7">@Strings.BodyBattery</listEntry>
-			<listEntry value="8">@Strings.StressLevel</listEntry>
-			<listEntry value="12">@Strings.RecoveryTime</listEntry>
-			<listEntry value="15">Weather</listEntry>
+			<listEntry value="2">@Strings.Steps</listEntry>
+			<listEntry value="4">@Strings.FloorsClimbed</listEntry>
+			<listEntry value="5">@Strings.ActiveMinutes</listEntry>
+			<listEntry value="17">@Strings.Notifications</listEntry>
+			<listEntry value="1">@Strings.Battery</listEntry>
+			<listEntry value="23">@Strings.BodyBattery</listEntry>
+			<listEntry value="22">@Strings.StressLevel</listEntry>
+			<listEntry value="21">@Strings.RecoveryTime</listEntry>
+			<listEntry value="8">@Strings.Weather</listEntry>
+			<listEntry value="7">@Strings.Date</listEntry>
+			<listEntry value="98">@Strings.DayOfMonth</listEntry>
 			<listEntry value="0">@Strings.Off</listEntry>
 		</settingConfig>
 	</setting>
 
 	<setting propertyKey="@Properties.RightGaugeType" title="@Strings.RightGaugeTitle">
 		<settingConfig type="list">
-			<listEntry value="1">@Strings.Steps</listEntry>
-			<listEntry value="2">@Strings.FloorsClimbed</listEntry>
-			<listEntry value="3">@Strings.ActiveMinutes</listEntry>
-			<listEntry value="4">@Strings.Notifications</listEntry>
-			<listEntry value="5">@Strings.Battery</listEntry>
-			<listEntry value="7">@Strings.BodyBattery</listEntry>
-			<listEntry value="8">@Strings.StressLevel</listEntry>
-			<listEntry value="12">@Strings.RecoveryTime</listEntry>
-			<listEntry value="15">Weather</listEntry>
+			<listEntry value="2">@Strings.Steps</listEntry>
+			<listEntry value="4">@Strings.FloorsClimbed</listEntry>
+			<listEntry value="5">@Strings.ActiveMinutes</listEntry>
+			<listEntry value="17">@Strings.Notifications</listEntry>
+			<listEntry value="1">@Strings.Battery</listEntry>
+			<listEntry value="23">@Strings.BodyBattery</listEntry>
+			<listEntry value="22">@Strings.StressLevel</listEntry>
+			<listEntry value="21">@Strings.RecoveryTime</listEntry>
+			<listEntry value="8">@Strings.Weather</listEntry>
+			<listEntry value="7">@Strings.Date</listEntry>
+			<listEntry value="98">@Strings.DayOfMonth</listEntry>
 			<listEntry value="0">@Strings.Off</listEntry>
 		</settingConfig>
 	</setting>
 
 	<setting propertyKey="@Properties.BottomLeftDataType" title="@Strings.BottomLeftDataTypeTitle">
 		<settingConfig type="list">
-			<listEntry value="0">@Strings.Off</listEntry>
-			<listEntry value="1">@Strings.Steps</listEntry>
-			<listEntry value="2">@Strings.FloorsClimbed</listEntry>
-			<listEntry value="3">@Strings.ActiveMinutes</listEntry>
-			<listEntry value="4">@Strings.Notifications</listEntry>
-			<listEntry value="5">@Strings.Battery</listEntry>
-			<listEntry value="6">@Strings.HeartRate</listEntry>
-			<listEntry value="7">@Strings.BodyBattery</listEntry>
-			<listEntry value="8">@Strings.StressLevel</listEntry>
-			<listEntry value="9">@Strings.Respiration</listEntry>
-			<listEntry value="10">@Strings.PulseOX</listEntry>
-			<listEntry value="11">@Strings.Calories</listEntry>
-			<listEntry value="12">@Strings.RecoveryTime</listEntry>
+				<listEntry value="0">@Strings.Off</listEntry>
+				<listEntry value="1">@Strings.Battery</listEntry>
+				<listEntry value="17">@Strings.Notifications</listEntry>
+				<listEntry value="2">@Strings.Steps</listEntry>
+				<listEntry value="4">@Strings.FloorsClimbed</listEntry>
+				<listEntry value="5">@Strings.ActiveMinutes</listEntry>
+				<listEntry value="18">@Strings.HeartRate</listEntry>
+				<listEntry value="22">@Strings.StressLevel</listEntry>
+				<listEntry value="23">@Strings.BodyBattery</listEntry>
+				<listEntry value="35">@Strings.PulseOX</listEntry>
+				<listEntry value="36">@Strings.Respiration</listEntry>
+				<listEntry value="3">@Strings.Calories</listEntry>
+				<listEntry value="21">@Strings.RecoveryTime</listEntry>
+				<listEntry value="15">@Strings.Altitude</listEntry>
+				<listEntry value="8">@Strings.Weather</listEntry>
+				<listEntry value="7">@Strings.Date</listEntry>
+				<listEntry value="98">@Strings.DayOfMonth</listEntry>
+				<listEntry value="101">Debug</listEntry>
+				<listEntry value="102">Debug 2</listEntry>
+				<listEntry value="103">Debug 3</listEntry>
 		</settingConfig>
 	</setting>
 
 	<setting propertyKey="@Properties.BottomDataType" title="@Strings.BottomDataTypeTitle">
 		<settingConfig type="list">
-			<listEntry value="0">@Strings.Off</listEntry>
-			<listEntry value="1">@Strings.Steps</listEntry>
-			<listEntry value="2">@Strings.FloorsClimbed</listEntry>
-			<listEntry value="3">@Strings.ActiveMinutes</listEntry>
-			<listEntry value="4">@Strings.Notifications</listEntry>
-			<listEntry value="5">@Strings.Battery</listEntry>
-			<listEntry value="6">@Strings.HeartRate</listEntry>
-			<listEntry value="7">@Strings.BodyBattery</listEntry>
-			<listEntry value="8">@Strings.StressLevel</listEntry>
-			<listEntry value="9">@Strings.Respiration</listEntry>
-			<listEntry value="10">@Strings.PulseOX</listEntry>
-			<listEntry value="11">@Strings.Calories</listEntry>
-			<listEntry value="12">@Strings.RecoveryTime</listEntry>
+				<listEntry value="0">@Strings.Off</listEntry>
+				<listEntry value="1">@Strings.Battery</listEntry>
+				<listEntry value="17">@Strings.Notifications</listEntry>
+				<listEntry value="2">@Strings.Steps</listEntry>
+				<listEntry value="4">@Strings.FloorsClimbed</listEntry>
+				<listEntry value="5">@Strings.ActiveMinutes</listEntry>
+				<listEntry value="18">@Strings.HeartRate</listEntry>
+				<listEntry value="22">@Strings.StressLevel</listEntry>
+				<listEntry value="23">@Strings.BodyBattery</listEntry>
+				<listEntry value="35">@Strings.PulseOX</listEntry>
+				<listEntry value="36">@Strings.Respiration</listEntry>
+				<listEntry value="3">@Strings.Calories</listEntry>
+				<listEntry value="21">@Strings.RecoveryTime</listEntry>
+				<listEntry value="15">@Strings.Altitude</listEntry>
+				<listEntry value="8">@Strings.Weather</listEntry>
+				<listEntry value="7">@Strings.Date</listEntry>
+				<listEntry value="98">@Strings.DayOfMonth</listEntry>
+				<listEntry value="99">Seconds</listEntry>
+				<listEntry value="101">Debug</listEntry>
+				<listEntry value="102">Debug 2</listEntry>
+				<listEntry value="103">Debug 3</listEntry>
 		</settingConfig>
 	</setting>
 
 	<setting propertyKey="@Properties.LeftGoalType" title="@Strings.LeftGoalMeterTitle">
 		<settingConfig type="list">
-			<listEntry value="1">@Strings.Steps</listEntry>
-			<listEntry value="2">@Strings.FloorsClimbed</listEntry>
-			<listEntry value="3">@Strings.ActiveMinutes</listEntry>
-			<listEntry value="5">@Strings.Battery</listEntry>
-			<listEntry value="7">@Strings.BodyBattery</listEntry>
-			<listEntry value="8">@Strings.StressLevel</listEntry>
+			<listEntry value="2">@Strings.Steps</listEntry>
+			<listEntry value="4">@Strings.FloorsClimbed</listEntry>
+			<listEntry value="5">@Strings.ActiveMinutes</listEntry>
+			<listEntry value="17">@Strings.Notifications</listEntry>
+			<listEntry value="1">@Strings.Battery</listEntry>
+			<listEntry value="23">@Strings.BodyBattery</listEntry>
+			<listEntry value="22">@Strings.StressLevel</listEntry>
 			<listEntry value="0">@Strings.Off</listEntry>
 		</settingConfig>
 	</setting>
 
 	<setting propertyKey="@Properties.RightGoalType" title="@Strings.RightGoalMeterTitle">
 		<settingConfig type="list">
-			<listEntry value="1">@Strings.Steps</listEntry>
-			<listEntry value="2">@Strings.FloorsClimbed</listEntry>
-			<listEntry value="3">@Strings.ActiveMinutes</listEntry>
-			<listEntry value="5">@Strings.Battery</listEntry>
-			<listEntry value="7">@Strings.BodyBattery</listEntry>
-			<listEntry value="8">@Strings.StressLevel</listEntry>
+			<listEntry value="2">@Strings.Steps</listEntry>
+			<listEntry value="4">@Strings.FloorsClimbed</listEntry>
+			<listEntry value="5">@Strings.ActiveMinutes</listEntry>
+			<listEntry value="17">@Strings.Notifications</listEntry>
+			<listEntry value="1">@Strings.Battery</listEntry>
+			<listEntry value="23">@Strings.BodyBattery</listEntry>
+			<listEntry value="22">@Strings.StressLevel</listEntry>
 			<listEntry value="0">@Strings.Off</listEntry>
 		</settingConfig>
 	</setting>
@@ -144,7 +171,6 @@
 			<listEntry value="1">@Strings.AllSegmentsMerged</listEntry>
 			<listEntry value="3">@Strings.FilledSegments</listEntry>
 			<listEntry value="4">@Strings.FilledSegmentsMerged</listEntry>
-			<listEntry value="2">@Strings.Hidden</listEntry>
 		</settingConfig>
 	</setting>
 
@@ -158,24 +184,22 @@
 		<settingConfig type="boolean" />
 	</setting>
 
-	<setting propertyKey="@Properties.LightDimmerStartTime" title="Dim start time (hhmm)">
-		<settingConfig type="numeric" min="0" max="2359"/>
-	</setting>
-	
-	<setting propertyKey="@Properties.LightDimmerEndTime" title="Dim end time (hhmm)">
-		<settingConfig type="numeric" min="0" max="2359"/>
-	</setting>
-
-	<setting propertyKey="@Properties.LightDimmerWEEndTime" title="Dim end time weekend (hhmm)">
-		<settingConfig type="numeric" min="0" max="2359"/>
-	</setting>
-
 	<setting propertyKey="@Properties.AODPowerSaver" title="AOD Power saving">
 		<settingConfig type="list">
 			<listEntry value="0">None</listEntry>
 			<listEntry value="1">Low</listEntry>
 			<listEntry value="2">Medium</listEntry>
 			<listEntry value="3">High</listEntry>
+		</settingConfig>
+	</setting>
+
+	<setting propertyKey="@Properties.AODOffBeforeSleep" title="AOD Off before sleep">
+		<settingConfig type="list">
+			<listEntry value="0">@Strings.Off</listEntry>
+			<listEntry value="1800">30 minutes</listEntry>
+			<listEntry value="3600">1 hour</listEntry>
+			<listEntry value="7200">2 hours</listEntry>
+			<listEntry value="43200">12 hours (DEBUG)</listEntry>
 		</settingConfig>
 	</setting>
 

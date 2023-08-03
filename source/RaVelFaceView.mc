@@ -1,5 +1,6 @@
 import Toybox.Application;
 import Toybox.Activity;
+using Toybox.Complications;
 using  Toybox.Graphics;
 import Toybox.Lang;
 import Toybox.System;
@@ -12,59 +13,42 @@ using Toybox.Sensor;
 var gTheme as Theme?;
 
 
-enum /* DATA_TYPES */ {
-	DATA_TYPE_OFF = 0,
-
-	DATA_TYPE_STEPS = 1,
-	DATA_TYPE_FLOORS_CLIMBED = 2,
-	DATA_TYPE_ACTIVE_MINUTES = 3,
-	DATA_TYPE_NOTIFICATIONS = 4,
-	DATA_TYPE_BATTERY = 5,
-	DATA_TYPE_HEART_RATE = 6,
-	DATA_TYPE_BODY_BATTERY = 7,
-	DATA_TYPE_STRESS_LEVEL = 8,
-	DATA_TYPE_RESPIRATION = 9,
-	DATA_TYPE_PULSE_OX = 10,
-	DATA_TYPE_CALORIES = 11,
-	DATA_TYPE_RECOVERY_TIME = 12,
-	DATA_TYPE_ALTITUDE = 13,
-	DATA_TYPE_WEATHER = 15,
-	DATA_TYPE_DATE = 21,
-	DATA_TYPE_DEBUG = 99,
-}
-
-
 enum {
 	DISPLAY_TEXT 	= 1,
 	DISPLAY_ICON 	= 2,
 }
 
 class RaVelFaceView extends WatchUi.WatchFace {
-	private var mTime;
-	private var mGauges = [null, null];
-	private var mMeters = [null, null];
+	private var mTime as ThickThinTime?;
+	private var mGauges as Array<Gauge?> = [null, null];
+	private var mMeters as Array<GoalMeter?> = [null, null];
 
-	private var mMeterTypes = [0 , 0];
-	private var mGaugeTypes = [0 , 0];
+	private var _topDataValues as DataValues?;
 
-	private var mTopDataType;
+	private var _bottomLeftDataValues as DataValues?;
+	private var _bottomLeftMaxX as Number = 0;
+	private var _bottomRightDataValues as DataValues?;
 
-	private var mBottomLeftDataType;
-	private var mBottomRightDataType;
+	private var _iconsFont as WatchUi.Resource?;
 
-	private var mIconsFont;
+	private var mSecondsDisplayMode as Number = 0;
 
-	private var mSecondsDisplayMode;
+	private var mShowAlarmIcon as Boolean = false;
+	private var mShowDontDisturbIcon as Boolean = false;
+	private var mShowNotificationIcon as Boolean = false;
 
-	private var mShowAlarmIcon;
-	private var mShowDontDisturbIcon;
-	private var mShowNotificationIcon;
-
-	private var _burnProtection = false;
-	private var mLastBurnOffsets = [0,0];
+	private var _burnProtection as Boolean = false;
+	private var mLastBurnOffsets as Array<Number> = [0,0];
 	private var mLastBurnOffsetsChangedMinute = 0;
 
-	private var _sleepTimeTracker;
+	private var _sleepTimeTracker as NullSleepTimeTracker or SleepTimeTracker;
+
+	private var _hiPowerDataValuesToUpdate as Array<DataValues> = new [0];
+	private var _loPowerDataValuesToUpdate as Array<DataValues> = new [0];
+	private var _currentDataValuesToUpdate as Array<DataValues>;
+
+	private var _skipOnUpdateOptimUntil as Number = 0;
+	private var _lastEffectiveUpdateInThisState as Number = 0;
 
 	function initialize() {
 		WatchFace.initialize();
@@ -76,58 +60,162 @@ class RaVelFaceView extends WatchUi.WatchFace {
 		else {
 			self._sleepTimeTracker = new NullSleepTimeTracker();
 		}
+		self._currentDataValuesToUpdate = self._hiPowerDataValuesToUpdate;
 	}
 
 	function onLayout(dc as Graphics.Dc) as Void {
 		setLayout(Rez.Layouts.WatchFace(dc));
 
-		var ravelOptions;
+		var ravelOptions = {};
 		if (Rez.JsonData has :ravelOptions) {
-			ravelOptions = Application.loadResource(Rez.JsonData.ravelOptions);
-		}
-		else {
-			ravelOptions = {};
+			ravelOptions = Application.loadResource(Rez.JsonData.ravelOptions) as Dictionary;
 		}
 
-		self.mIconsFont = WatchUi.loadResource(Rez.Fonts.IconsFont);
-		self.mTime = View.findDrawableById("Time");
+		self._iconsFont = WatchUi.loadResource(Rez.Fonts.IconsFont);
+		self.mTime = new ThickThinTime( ravelOptions["time"], dc );
 
 		if (self._burnProtection) {
 			self.mTime.enterBurnProtection();
 		}
 
-		mMeters[0] = View.findDrawableById("LeftGoalMeter");
-		mMeters[1] = View.findDrawableById("RightGoalMeter");
+		var opts = {};
+		opts = ravelOptions["meters"] as Dictionary;
 
-		mGauges[0] = View.findDrawableById("LeftGauge");
-		mGauges[1] = View.findDrawableById("RightGauge");
-
+		mMeters[0] = new GoalMeter(:left, opts);
+		mMeters[1] = new GoalMeter(:right, opts);
 
 		if (ravelOptions["displayMeterIcons"]) {
-			mMeters[0].setIconFont(mIconsFont);
-			mMeters[1].setIconFont(mIconsFont);
+			mMeters[0].setIconFont( self._iconsFont );
+			mMeters[1].setIconFont( self._iconsFont );
 		}
 
-		for (var i=0 ;i<2 ; i++) {
-			if (mGauges[i]) {
-				mGauges[i].setIconFont( self.mIconsFont );
-				mGauges[i].setY( mTime.getTopFieldY() - 1 );
+		if ( ravelOptions.hasKey("gauges") )
+		{
+			opts = ravelOptions["gauges"] as Dictionary;
+			var locX = opts["locX"];
+
+			self.mGauges[0] = new Gauge(locX, opts);
+			self.mGauges[1] = new Gauge(Utils.screenWidth - locX, opts);
+
+			for (var i=0 ;i<2 ; i++) {
+				self.mGauges[i].setIconFont( self._iconsFont );
+				self.mGauges[i].setY( mTime.getTopFieldY() - 1 );
 			}
 		}
 
-		self.onSettingsChanged();
+		var secondsBottom = ( self.mTime.getSecondsY() + self.mTime.getSecondsClipRectHeight() / 2 ) - Utils.halfScreenWidth;
+		self._bottomLeftMaxX = Math.ceil( Utils.halfScreenWidth - Math.sqrt( Utils.halfScreenWidth * Utils.halfScreenWidth - secondsBottom * secondsBottom) ).toNumber();
 
+		self.onSettingsChanged();
 	}
 
-	function onUpdate(dc as Graphics.Dc) as Void {
-		//System.println("onUpdate");
+	public function onSettingsChanged() as Void {
+		self._sleepTimeTracker.onSettingsChanged();
+		$.gTheme.onSettingsChanged();
 
+		self.mMeters[0].dataValues = DataManager.getOrCreateDataValues( Application.Properties.getValue("LeftGoalType") );
+		self.mMeters[1].dataValues = DataManager.getOrCreateDataValues( Application.Properties.getValue("RightGoalType") );
+
+		if (self.mGauges[0] != null) {
+			self.mGauges[0].dataValues = DataManager.getOrCreateDataValues( Application.Properties.getValue("LeftGaugeType") );
+		}
+		if (self.mGauges[1] != null) {
+			self.mGauges[1].dataValues = DataManager.getOrCreateDataValues( Application.Properties.getValue("RightGaugeType") );
+		}
+	
+		self.mSecondsDisplayMode = Application.Properties.getValue("SecondsDisplayMode");
+
+		if (mTime != null) {
+			mMeters[0].onSettingsChanged();
+			mMeters[1].onSettingsChanged();
+
+			mTime.onSettingsChanged();
+
+			if ( self.mSecondsDisplayMode < 2 ) {
+				self.mTime.setHideSeconds(self.mSecondsDisplayMode ? false : true);
+			}
+		}
+
+		self._topDataValues = DataManager.getOrCreateDataValues( Application.Properties.getValue("TopDataType") );
+		self._bottomLeftDataValues = DataManager.getOrCreateDataValues( Application.Properties.getValue("BottomLeftDataType") );
+
+		var dataType = Application.Properties.getValue( "BottomDataType" );
+		self._bottomRightDataValues = dataType != DATA_TYPE_OFF ? DataManager.getOrCreateDataValues( dataType ) : null;
+
+		mShowAlarmIcon = Application.Properties.getValue("ShowAlarmIcon");
+		mShowDontDisturbIcon = Application.Properties.getValue("ShowDontDisturbIcon");
+		mShowNotificationIcon = Application.Properties.getValue("ShowNotificationIcon");
+
+		// build lists of dataValues to update in onUpdate
+		var hiValues = {}, loValues = {};
+		updateHiLoValuesToUpdate( self._topDataValues, hiValues, loValues );
+		updateHiLoValuesToUpdate( self._bottomLeftDataValues, hiValues, loValues );
+		updateHiLoValuesToUpdate( self._bottomRightDataValues, hiValues, loValues );
+		if ( self.mGauges[0] != null ) {
+			updateHiLoValuesToUpdate( self.mGauges[0].dataValues, hiValues, loValues );
+			updateHiLoValuesToUpdate( self.mGauges[1].dataValues, hiValues, loValues );
+		}
+		updateHiLoValuesToUpdate( self.mMeters[0].dataValues, hiValues, null );
+		updateHiLoValuesToUpdate( self.mMeters[1].dataValues, hiValues, null );
+		self._hiPowerDataValuesToUpdate = hiValues.values() as Array<DataValues>;
+		self._loPowerDataValuesToUpdate = loValues.values() as Array<DataValues>;
+		self._currentDataValuesToUpdate = self._hiPowerDataValuesToUpdate;
+
+		self._lastEffectiveUpdateInThisState = 0;
+	}
+
+	private function updateHiLoValuesToUpdate(dataValues as DataValues?, hiValues as Dictionary, loValues as Dictionary?) {
+		if ( dataValues != null && dataValues.dataType != DATA_TYPE_OFF ) {
+			hiValues[dataValues.dataType] = dataValues;
+			if ( loValues != null && dataValues.canForceBurnProtection ) {
+				loValues[dataValues.dataType] = dataValues;
+			}
+		}
+	}
+
+
+	function onUpdate(dc as Graphics.Dc) as Void {
 		var now = Time.now().value();
 
-		if  (!self._sleepTimeTracker.onUpdate(now) ) {
-			dc.setColor(Graphics.COLOR_TRANSPARENT, $.gTheme.BackgroundColor);
-			dc.clear();
+		// same second update
+		if (now == self._lastEffectiveUpdateInThisState ) {
 			return;
+		}
+
+		if  ( !self._sleepTimeTracker.onUpdate(now) ) {
+			if ( self._lastEffectiveUpdateInThisState != 1) {
+				dc.clearClip();
+				dc.setColor(Graphics.COLOR_TRANSPARENT, $.gTheme.BackgroundColor);
+				dc.clear();
+				self._lastEffectiveUpdateInThisState = 1;
+			}
+			return;
+		}
+
+		if ( now > self._skipOnUpdateOptimUntil) {
+			// update values and check for changes
+			var fieldsChanged = false;
+			for (var i=self._currentDataValuesToUpdate.size()-1; i>=0; i--) {
+				fieldsChanged |= updateDataValues( self._currentDataValuesToUpdate[i] );
+			}
+
+			if ( !fieldsChanged ) {
+				if ( now/60 == self._lastEffectiveUpdateInThisState/60 ) {
+					// same minute update - only seconds changed
+					if ( self._burnProtection ) {
+						return;
+					}
+					self.onPartialUpdate(dc);
+					return;
+				}
+			}
+
+			self._lastEffectiveUpdateInThisState = now;
+
+		} else {
+			for (var i=self._currentDataValuesToUpdate.size()-1; i>=0; i--) {
+				updateDataValues( self._currentDataValuesToUpdate[i] );
+			}
 		}
 
 		// Clear any partial update clipping.
@@ -139,123 +227,145 @@ class RaVelFaceView extends WatchUi.WatchFace {
 			self.mLastBurnOffsets = [Math.rand() % 16 - 8, Math.rand() % 16 - 8];
 			self.mLastBurnOffsetsChangedMinute = clockTime.min;
 			for (var i=0; i < 2; i++) {
-				if (self.mGauges[i]) {
+				if (self.mGauges[i] != null) {
 					self.mGauges[i].setXYOffset(self.mLastBurnOffsets[0], self.mLastBurnOffsets[1]);
 				}
 			}
 		}
 
-		updateDrawables();
+		var sleepMode = self._sleepTimeTracker.SleepMode;
 
-		// Call the parent onUpdate function to redraw the layout
-		View.onUpdate(dc);
+		/* time update */
+		if (self.mSecondsDisplayMode == 2) {
+			self.mTime.setHideSeconds( sleepMode );
+		}
 
-		var values;
+		dc.setColor(Graphics.COLOR_TRANSPARENT, $.gTheme.BackgroundColor);
+		dc.clear();
+
+		/* meters */
+		if ( !self._burnProtection && !sleepMode ) {
+			for (var i=0; i < 2; i++) {
+				self.mMeters[i].onUpdate( dc );
+			}
+		}
+
+		mTime.draw(clockTime, dc);
+		mTime.drawSeconds(clockTime.sec, dc, false);
+
+		/* gauges */
+		dc.setAntiAlias(true);
+		for (var i=0;i<2 ; i++) {
+			var gauge = self.mGauges[i];
+
+			if ( gauge!=null && (!self._burnProtection || gauge.dataValues.canForceBurnProtection) ) {
+				var displayType = self._burnProtection ? gauge.dataValues.burnProtection : DISPLAY_ICON | DISPLAY_TEXT;
+				if ( displayType ) {
+					gauge.onUpdate(dc, displayType);
+				}
+			}
+			
+		}
 
 		/* top data above clock*/
-		if (!self._burnProtection) {
-			values = self.getValuesForDataType( self.mTopDataType );
+		if ( !self._burnProtection ) {
+			var dataValues = self._topDataValues;
 
-			if ( values[:value] != null ) {
+			if ( dataValues.value != null ) {
 				var font = Graphics.FONT_LARGE;
-				var x = dc.getWidth()/2;
+				var x = Utils.halfScreenWidth;
 				var y = mTime.getTopFieldY();
-				var textDims = dc.getTextDimensions(values[:text], font);
+				var textWidth = dc.getTextWidthInPixels(dataValues.text, font);
 
-				if ( values[:icon] != null ) {
-					dc.setColor( ( (values[:valueColor]!=null) ? values[:valueColor] : $.gTheme.IconColor ), Graphics.COLOR_TRANSPARENT);
+				if ( dataValues.icon != null ) {
+					dc.setColor( ( (dataValues.color!=null) ? dataValues.color : $.gTheme.IconColor ), Graphics.COLOR_TRANSPARENT);
 
-					var iconDims = dc.getTextDimensions(values[:icon], self.mIconsFont);
-					textDims[0] += iconDims[0]; // center on icon+text
+					textWidth += dc.getTextWidthInPixels(dataValues.icon, self._iconsFont); // center on icon+text
 
 					dc.drawText(
-						x - textDims[0]/2,
+						x - textWidth/2,
 						y, /* icon higher so that it has more space*/
-						self.mIconsFont, values[:icon], Graphics.TEXT_JUSTIFY_LEFT|Graphics.TEXT_JUSTIFY_VCENTER);
+						self._iconsFont, dataValues.icon, Graphics.TEXT_JUSTIFY_LEFT|Graphics.TEXT_JUSTIFY_VCENTER);
 				}
 
 				dc.setColor( $.gTheme.ForeColor, Graphics.COLOR_TRANSPARENT);
 				dc.drawText(
-					x + textDims[0] /2,
+					x + textWidth/2,
 					y,
-					font, values[:text], Graphics.TEXT_JUSTIFY_RIGHT|Graphics.TEXT_JUSTIFY_VCENTER);
+					font, dataValues.text, Graphics.TEXT_JUSTIFY_RIGHT|Graphics.TEXT_JUSTIFY_VCENTER);
 			}
 		}
 
 		/* bottom left below clock */
 		if (!self._burnProtection) {
-			values = self.getValuesForDataType(self.mBottomLeftDataType);
+			var dataValues = self._bottomLeftDataValues;
 
-			if ( values[:value] != null ) {
+			if ( dataValues.value != null ) {
 				var font = Graphics.FONT_NUMBER_MEDIUM;
 
 				var x;
 				if (self.mTime.getHideSeconds()) {
-					x = dc.getWidth()/2;
+					x = Utils.halfScreenWidth;
 				}
 				else {
-					x = self.mTime.getLeftFieldAdjustX() + self.mTime.getSecondsX() / 2;
+					x = (self._bottomLeftMaxX + self.mTime.getSecondsX() ) / 2;
 				}
 				var y = self.mTime.getSecondsY();
-				var textDims = dc.getTextDimensions(values[:text], font);
+				var textDims = dc.getTextDimensions(dataValues.text, font);
 
-				if ( values[:icon] != null && x-textDims[0]/2 > 10 ) {
-					dc.setColor( values[:valueColor]!=null ? values[:valueColor] : $.gTheme.IconColor, Graphics.COLOR_TRANSPARENT);
+				if ( dataValues.icon != null && x-textDims[0]/2 > 10 ) {
+					dc.setColor( dataValues.color!=null ? dataValues.color : $.gTheme.IconColor, Graphics.COLOR_TRANSPARENT);
 
-					var iconDims = dc.getTextDimensions(values[:icon], mIconsFont);
+					var iconDims = dc.getTextDimensions(dataValues.icon, self._iconsFont);
 					dc.drawText(
 						x - textDims[0]/2 + 2,
 						y - (textDims[1]*3)/10 + iconDims[1]/2, /* icon higher so that it has more space*/
-						self.mIconsFont, values[:icon], Graphics.TEXT_JUSTIFY_RIGHT|Graphics.TEXT_JUSTIFY_VCENTER);
+						self._iconsFont, dataValues.icon, Graphics.TEXT_JUSTIFY_RIGHT|Graphics.TEXT_JUSTIFY_VCENTER);
 				}
 
-				dc.setColor( values[:valueColor]!=null ? values[:valueColor] : $.gTheme.ForeColor, Graphics.COLOR_TRANSPARENT);
+				dc.setColor( dataValues.color!=null ? dataValues.color : $.gTheme.ForeColor, Graphics.COLOR_TRANSPARENT);
 				dc.drawText(
 					x,
 					y,
-					font, values[:text], Graphics.TEXT_JUSTIFY_CENTER|Graphics.TEXT_JUSTIFY_VCENTER);
-
+					font, dataValues.text, Graphics.TEXT_JUSTIFY_CENTER|Graphics.TEXT_JUSTIFY_VCENTER);
 			}
 		}
 
-
-		/* very bottom */
+		/* very bottom */`
+		if ( self._bottomRightDataValues != null )
 		{
-			values = self.getValuesForDataType(self.mBottomRightDataType);
+			var dataValues = self._bottomRightDataValues;
 
-			if ( values[:value] != null && (!self._burnProtection || values[:burnProtection]!=null)) {
+			if ( dataValues.value != null && (!self._burnProtection || dataValues.burnProtection > 0 )) {
 				var font = Graphics.FONT_NUMBER_MILD;
 
-				var textDims = dc.getTextDimensions(values[:text], font);
+				var textDims = dc.getTextDimensions(dataValues.text, font);
 
-				var x = dc.getWidth()/2;
-				var y = dc.getHeight() - textDims[1]/2 + 1;
+				var x = Utils.halfScreenWidth;
+				var y = Utils.screenHeight - textDims[1]/2 + 1;
 
 				if (self._burnProtection) {
 					x += self.mLastBurnOffsets[0];
 					y -= self.mLastBurnOffsets[1].abs();
 				}
 
-				if ( values[:icon] != null ) {
+				if ( dataValues.icon != null ) {
 
-					var iconDims = dc.getTextDimensions(values[:icon], self.mIconsFont);
-					textDims[0] += iconDims[0]; // center on icon+text
+					textDims[0] += dc.getTextWidthInPixels(dataValues.icon, self._iconsFont); // center on icon+text
 
-					if (!self._burnProtection || values[:burnProtection] & DISPLAY_ICON) {
-						dc.setColor( values[:valueColor]!=null ? values[:valueColor] : $.gTheme.IconColor, Graphics.COLOR_TRANSPARENT);
+					if (!self._burnProtection || (dataValues.burnProtection & DISPLAY_ICON) != 0) {
+						dc.setColor( dataValues.color!=null ? dataValues.color : $.gTheme.IconColor, Graphics.COLOR_TRANSPARENT);
 						dc.drawText(
-							x - (textDims[0])/2,
-							y,
-							self.mIconsFont, values[:icon], Graphics.TEXT_JUSTIFY_LEFT|Graphics.TEXT_JUSTIFY_VCENTER);
+							x - (textDims[0])/2, y,
+							self._iconsFont, dataValues.icon, Graphics.TEXT_JUSTIFY_LEFT|Graphics.TEXT_JUSTIFY_VCENTER);
 					}
 				}
 
-				if (!self._burnProtection || values[:burnProtection] & DISPLAY_TEXT) {
-					dc.setColor( values[:valueColor]!=null ? values[:valueColor] : $.gTheme.ForeColor, Graphics.COLOR_TRANSPARENT);
+				if (!self._burnProtection || (dataValues.burnProtection & DISPLAY_TEXT) != 0) {
+					dc.setColor( dataValues.color!=null ? dataValues.color : $.gTheme.ForeColor, Graphics.COLOR_TRANSPARENT);
 					dc.drawText(
-						x + textDims[0]/2,
-						y,
-						font, values[:text], Graphics.TEXT_JUSTIFY_RIGHT|Graphics.TEXT_JUSTIFY_VCENTER);
+						x + textDims[0]/2, y,
+						font, dataValues.text, Graphics.TEXT_JUSTIFY_RIGHT|Graphics.TEXT_JUSTIFY_VCENTER);
 				}
 			}
 		}
@@ -287,25 +397,26 @@ class RaVelFaceView extends WatchUi.WatchFace {
 			if ( icons.length() ) {
 					dc.setColor( $.gTheme.LowKeyColor, Graphics.COLOR_TRANSPARENT );
 					dc.drawText(
-						dc.getWidth()/2,
-						0,
-						self.mIconsFont,
+						Utils.halfScreenWidth,
+						1,
+						self._iconsFont,
 						icons,
 						Graphics.TEXT_JUSTIFY_CENTER);
 
 			}
 		}
-
 	}
 
 	function onPartialUpdate(dc as Graphics.Dc) as Void{
 		//System.println("onPartialUpdate");
-		mTime.drawSeconds(dc, /* isPartialUpdate */ true);
+		mTime.drawSeconds(System.getClockTime().sec, dc, /* isPartialUpdate */ true);
 	}
 
 	function onShow() as Void {
 		//TRACE("onShow");
 		self._sleepTimeTracker.onShow();
+		self._lastEffectiveUpdateInThisState = 0;
+		self._skipOnUpdateOptimUntil = Time.now().value() + 2;
 	}
 
 	function onHide() as Void {
@@ -316,22 +427,27 @@ class RaVelFaceView extends WatchUi.WatchFace {
 	function onExitSleep() as Void {
 		//TRACE("onExitSleep");
 		self._sleepTimeTracker.onExitSleep();
+		self._lastEffectiveUpdateInThisState = 0;
 		self._burnProtection = false;
+		self._currentDataValuesToUpdate = self._hiPowerDataValuesToUpdate;
 		for (var i=0; i < 2; i++) {
-			if (self.mGauges[i]) {
+			if (self.mGauges[i] != null) {
 				self.mGauges[i].setXYOffset(0,0);
 			}
 		}
-		self.mTime.exitBurnProtection();
+		self.mTime.exitBurnProtection( self._sleepTimeTracker.SleepMode );
 	}
 
 	function onEnterSleep() as Void {
 		//TRACE("onEnterSleep");
 		self._sleepTimeTracker.onEnterSleep();
+		self._lastEffectiveUpdateInThisState = 0;
+		self._skipOnUpdateOptimUntil = 0;
 		if (System.getDeviceSettings().requiresBurnInProtection) {
 			self._burnProtection = true;
 			self.mLastBurnOffsetsChangedMinute = System.getClockTime().min;
 			self.mLastBurnOffsets = [0,0];
+			self._currentDataValuesToUpdate = self._loPowerDataValuesToUpdate;
 			if (self.mTime != null) {
 				self.mTime.enterBurnProtection();
 			}
@@ -346,319 +462,115 @@ class RaVelFaceView extends WatchUi.WatchFace {
 		self._sleepTimeTracker.onBackgroundWakeTime();
 	}
 
-	public function onPress(x as Number, y as Number) as Lang.Boolean
+	public function onPress(x as Number, y as Number) as Boolean
 	{
 		self._sleepTimeTracker.unfreezeMorningAOD();
+
+		if ( y > (Utils.screenHeight - mMeters[0].getHeight() ) / 2 && y < (Utils.screenHeight + mMeters[0].getHeight() ) / 2 ) {
+			var distanceToCenter = (x - Utils.halfScreenWidth) * (x - Utils.halfScreenWidth) + (y - Utils.halfScreenHeight) * (y - Utils.halfScreenHeight);
+			var usedStroke =  mMeters[0].getStroke();
+			if ( y > (Utils.screenHeight - mMeters[0].getHeight() ) / 2 + mMeters[0].getHeight()/4 && y < (Utils.screenHeight + mMeters[0].getHeight() ) / 2  - mMeters[0].getHeight()/4) {
+				usedStroke *= 3;
+			}
+
+			if ( distanceToCenter >= (Utils.halfScreenWidth - usedStroke) * (Utils.halfScreenWidth - usedStroke) )  {
+				var dataType = x < Utils.halfScreenWidth ? mMeters[0].dataValues.dataType : mMeters[1].dataValues.dataType;
+				return self.navigateToDataType( dataType );
+			}
+		}
+
+		for (var i=0; i<2; i++) {
+			if (self.mGauges[i] != null) {
+				var distanceToCenter = (x - self.mGauges[i].locX) * (x - self.mGauges[i].locX) + (y - self.mGauges[i].locY) * (y - self.mGauges[i].locY);
+				if (distanceToCenter <= self.mGauges[i].getRadius() * self.mGauges[i].getRadius() )	{
+					return self.navigateToDataType( self.mGauges[i].dataValues.dataType );
+				}
+			}
+		}
+
+		var dc = Graphics.createBufferedBitmap( {:width => 20, :height => 20 }).get().getDc();
+
+		/* top data above clock*/
+		var dataValues = self._topDataValues;
+		if ( dataValues.text != null ) {
+
+				var textDims = dc.getTextDimensions(dataValues.text, Graphics.FONT_LARGE);
+
+				if ( dataValues.icon != null ) {
+					textDims[0] += dc.getTextWidthInPixels(dataValues.icon, self._iconsFont); // center on icon+text
+				}
+
+				if (x >= Utils.halfScreenWidth - textDims[0]/2 && x <= Utils.halfScreenWidth + textDims[0]/2 && y >= mTime.getTopFieldY() - textDims[1]/2 && y <= mTime.getTopFieldY() + textDims[1]/2 ) {
+					return self.navigateToDataType( dataValues.dataType );
+				}
+		}
+
+		/* very bottom */`
+		if ( self._bottomRightDataValues != null )
+		{
+			dataValues = self._bottomRightDataValues;
+
+			if ( dataValues.text != null) {
+				var textDims = dc.getTextDimensions(dataValues.text, Graphics.FONT_NUMBER_MILD);
+				var midX = Utils.halfScreenWidth;
+				var midY = Utils.screenHeight- textDims[1]/2 + 1;
+
+				if ( dataValues.icon != null ) {
+					textDims[0] += dc.getTextWidthInPixels(dataValues.icon, self._iconsFont); // center on icon+text
+				}
+
+				if (x >= midX - textDims[0]/2 && x <= midX + textDims[0]/2 && y >= midY - textDims[1]/2 && y <= midY + textDims[1]/2) {
+					return self.navigateToDataType( dataValues.dataType );
+				}
+			}
+		}
+
+
+		/* bottom left below clock */
+		dataValues = self._bottomLeftDataValues;
+		if ( dataValues.text != null ) {
+				var midX;
+				if (self.mTime.getHideSeconds()) {
+					midX = Utils.halfScreenWidth;
+				}
+				else {
+					midX = (self._bottomLeftMaxX + self.mTime.getSecondsX() ) / 2;
+				}
+				var midY = self.mTime.getSecondsY();
+				var textDims = dc.getTextDimensions(dataValues.text, Graphics.FONT_NUMBER_MEDIUM);
+
+				if (x >= midX - textDims[0]/2 && x <= midX + textDims[0]/2 && y >= midY - textDims[1]/2 && y <= midY + textDims[1]/2 ) {
+					return self.navigateToDataType( dataValues.dataType );
+				}
+		}
 
 		self._sleepTimeTracker.unfreezeEveningAOD();
 
 		return false;
 	}
 
-	public function onSettingsChanged() as Void {
-		self._sleepTimeTracker.onSettingsChanged();
-		$.gTheme.onSettingsChanged();
-
-		self.mMeterTypes[0] = Application.Properties.getValue("LeftGoalType");
-		self.mMeterTypes[1] = Application.Properties.getValue("RightGoalType");
-		self.mGaugeTypes[0] = Application.Properties.getValue("LeftGaugeType");
-		self.mGaugeTypes[1] = Application.Properties.getValue("RightGaugeType");
-
-		self.mSecondsDisplayMode = Application.Properties.getValue("SecondsDisplayMode");
-
-		if (mTime != null) {
-			mMeters[0].onSettingsChanged();
-			mMeters[1].onSettingsChanged();
-
-			mTime.onSettingsChanged();
-
-			if ( self.mSecondsDisplayMode < 2 ) {
-				self.mTime.setHideSeconds(self.mSecondsDisplayMode ? false : true);
+	private function navigateToDataType( dataType as Number) as Boolean
+	{
+		if (dataType < 50 ) {
+			var complicationType = dataType as Complications.Type;
+			var thisComplication = new Complications.Id(complicationType);
+			if (thisComplication != null) {
+				Complications.exitTo(thisComplication);
+				return true;
 			}
 		}
-
-
-		mTopDataType = Application.Properties.getValue("TopDataType");
-		mBottomLeftDataType = Application.Properties.getValue("BottomLeftDataType");
-		mBottomRightDataType = Application.Properties.getValue("BottomDataType");
-
-		mShowAlarmIcon = Application.Properties.getValue("ShowAlarmIcon");
-		mShowDontDisturbIcon = Application.Properties.getValue("ShowDontDisturbIcon");
-		mShowNotificationIcon = Application.Properties.getValue("ShowNotificationIcon");
+		return false;
 	}
 
-
-	public function getValuesForDataType(type as Number) {
-		var values = {
-		};
-
-		var info = ActivityMonitor.getInfo();
-		var settings = System.getDeviceSettings();
-		var activityInfo, val=null;
-
-		switch (type) {
-			case DATA_TYPE_STEPS:
-				values[:value] = info.steps;
-				values[:max] = info.stepGoal;
-				values[:icon] = ICON_STEPS;
+	private function updateDataValues(data as DataValues) as Boolean {
+		switch (data.dataType) {
+			case DATA_TYPE_DEBUG2:
 				break;
-			case DATA_TYPE_ACTIVE_MINUTES:
-				if (info has :activeMinutesWeek) {
-					values[:value] = info.activeMinutesWeek.total;
-					values[:max] = 100;
-				}
-				values[:icon] = ICON_ACTIVE_MINUTES;
-				break;
-			case DATA_TYPE_FLOORS_CLIMBED:
-				if (info has :floorsClimbed) {
-					values[:value] = info.floorsClimbed;
-					values[:max] = info.floorsClimbedGoal;
-				}
-				values[:icon] = ICON_FLOORS_UP;
-				break;
-			case DATA_TYPE_NOTIFICATIONS:
-				values[:value] = settings.notificationCount;
-				if (settings.phoneConnected) {
-					if (settings.notificationCount == 0) {
-						values[:valueColor] = $.gTheme.LowKeyColor;
-						values[:icon] = ICON_NOTIFICATIONS_EMPTY;
-					}
-					else {
-						values[:icon] = ICON_NOTIFICATIONS_FULL;
-						values[:max] = 1;
-						if (self._burnProtection || self._sleepTimeTracker.SleepMode) {
-							values[:valueColor] = $.gTheme.ForeColor;
-							values[:burnProtection] = DISPLAY_ICON;
-						}
-					}
-				}
-				else {
-					values[:text] = "-";
-					values[:burnProtection] = DISPLAY_ICON;
-					values[:valueColor] = $.gTheme.WarnColor;
-					values[:icon] = ICON_PHONE_DISCONNECTED;
-				}
-				break;
-			case DATA_TYPE_HEART_RATE:
-				activityInfo = Activity.getActivityInfo();
-				if (activityInfo.currentHeartRate != null) {
-					values[:value] = activityInfo.currentHeartRate;
-				} else if (ActivityMonitor has :getHeartRateHistory) {
-					var sample = ActivityMonitor.getHeartRateHistory(1, /* newestFirst */ true)
-						.next();
-					if ((sample != null) && (sample.heartRate != ActivityMonitor.INVALID_HR_SAMPLE)) {
-						values[:value] = sample.heartRate;
-					}
-				}
-				values[:icon] = ICON_HEART_EMPTY;
-				break;
-			case DATA_TYPE_BATTERY:
-				var batteryLevel = System.getSystemStats().battery;
-				var batteryInDays = System.getSystemStats().batteryInDays;
-				values[:value] = Math.floor(batteryLevel);
-				values[:max] = 100;
-				values[:text] = batteryLevel.format("%.0f");
-
-				if (batteryLevel > 85) {
-					values[:icon] = ICON_BATTERY_FULL;
-				}
-				else if (batteryLevel > 65) {
-					values[:icon] = ICON_BATTERY_3QUARTERS;
-				}
-				else if (batteryLevel > 35) {
-					values[:icon] = ICON_BATTERY_HALF;
-				}
-				else {
-					values[:icon] = batteryLevel > 15 ? ICON_BATTERY_QUARTER : ICON_BATTERY_EMPTY;
-
-					if (batteryLevel < 10 || batteryInDays < 1) {
-						values[:valueColor] = $.gTheme.ErrorColor;
-						values[:burnProtection] = DISPLAY_ICON;
-					}
-					else if (batteryLevel < 15 || batteryInDays < 2) {
-						values[:valueColor] = $.gTheme.WarnColor;
-						values[:burnProtection] = DISPLAY_ICON;
-					}
-				}
-				break;
-
-			case DATA_TYPE_CALORIES:
-				values[:value] = info.calories;
-				values[:icon] = ICON_CALORIES;
-				break;
-
-			case DATA_TYPE_BODY_BATTERY:
-				if ((Toybox has :SensorHistory) && (Toybox.SensorHistory has :getBodyBatteryHistory)) {
-					var sample = Toybox.SensorHistory.getBodyBatteryHistory({"period"=>1,"order"=>SensorHistory.ORDER_NEWEST_FIRST}).next();
-					if (sample != null) {
-						values[:value] = sample.data;
-						values[:text] = sample.data.format("%.0f");
-						values[:max] = 100;
-						values[:icon] = ICON_BODY_BATTERY;
-					}
-				}
-				break;
-			case DATA_TYPE_STRESS_LEVEL:
-				if ((Toybox has :SensorHistory) && (Toybox.SensorHistory has :getStressHistory)) {
-					var sample = Toybox.SensorHistory.getStressHistory({"period"=>1,"order"=>SensorHistory.ORDER_NEWEST_FIRST}).next();
-					if (sample != null) {
-						values[:value] = sample.data;
-						values[:text] = sample.data.format("%.0f");
-						values[:max] = 100;
-						values[:icon] = ICON_STRESS_LEVEL;
-					}
-				}
-				break;
-
-			case DATA_TYPE_PULSE_OX:
-				activityInfo = Activity.getActivityInfo();
-				if (activityInfo.currentOxygenSaturation != null) {
-					val = activityInfo.currentOxygenSaturation;
-				}
-				else if ((Toybox has :SensorHistory) && (Toybox.SensorHistory has :getOxygenSaturationHistory)) {
-					var sample = Toybox.SensorHistory.getOxygenSaturationHistory({"period"=>1,"order"=>SensorHistory.ORDER_NEWEST_FIRST}).next();
-					if (sample != null && sample.data != null) {
-						val = sample.data;
-					}
-				}
-				if (val != null) {
-					values[:value] = val;
-					values[:text] = val.format("%.0f");
-					values[:max] = 100;
-					values[:icon] = ICON_PULSE_OX;
-				}
-				break;
-
-			case DATA_TYPE_ALTITUDE:
-				if ((Toybox has :SensorHistory) && (Toybox.SensorHistory has :getElevationHistory)) {
-					var sample = Toybox.SensorHistory.getElevationHistory({"period"=>1,"order"=>SensorHistory.ORDER_NEWEST_FIRST}).next();
-					if (sample != null) {
-						var altitude = sample.data;
-						values[:value] = altitude;
-						if (settings.temperatureUnits == System.UNIT_STATUTE) {
-							altitude = Math.round( 3.28084 * altitude );
-						}
-						values[:text] = altitude.format("%.0f");
-						values[:icon] = ICON_ALTITUDE;
-					}
-				}
-				break;
-
-			case DATA_TYPE_RESPIRATION:
-				if (info has :respirationRate and info.respirationRate  != null) {
-					values[:value] = info.respirationRate;
-				}
-				values[:icon] = ICON_RESPIRATION;
-				break;
-
-			case DATA_TYPE_RECOVERY_TIME:
-				if (info has :timeToRecovery) {
-					values[:value] = info.timeToRecovery;
-					values[:max] = 72;
-					if ( info.timeToRecovery > 36 ) {
-						values[:valueColor] = Graphics.COLOR_ORANGE;
-					}
-					else if ( info.timeToRecovery > 24 ) {
-						values[:valueColor] = Graphics.COLOR_YELLOW;
-					}
-					else {
-						values[:valueColor] = Graphics.COLOR_GREEN;
-					}
-				}
-				break;
-
-			case DATA_TYPE_WEATHER:
-				{
-					var wCond= Weather.getCurrentConditions();
-						values[:value] = wCond.precipitationChance;
-						values[:max] = 100;
-						var temperature = wCond.temperature;
-						if (settings.temperatureUnits == System.UNIT_STATUTE) {
-							temperature = 32 + ( temperature * 9 + 2 )/ 5;
-						}
-						values[:text] = Lang.format("$1$°", [temperature] );
-				}
-				break;
-			case DATA_TYPE_DATE:
-				var now = Time.Gregorian.info(Time.now(), Time.FORMAT_SHORT);
-
-				var dow = [
-						"Su", "Mo", "Tu", "We", "Th", "Fr", "Sa"
-						][now.day_of_week - 1];
-				//dow = dow.substring(0,2);
-
-				values[:text] = dow + " " + now.day.toString();
-				values[:value] = values[:text];
-				break;
-
-			case DATA_TYPE_DEBUG:
-				{
-					var wCond= Weather.getCurrentConditions();
-					var seconds = Time.now().value() - wCond.observationTime.value();
-					values[:max] = 24*3600;
-					values[:value] = seconds;
-					values[:text] = Lang.format("$1$", [wCond.condition] );
-				}
-				break;
+			default:
+				return data.refresh();
 		}
-
-		if (values[:text] == null && values[:value] != null) {
-			values[:text] = values[:value].toString();
-		}
-
-		return values;
+		return true;
 	}
 
-	private function updateDrawables() {
-		var sleepMode = self._sleepTimeTracker.SleepMode;
-		/* meters */
-		if (!self._burnProtection && !sleepMode ) {
-			for (var i=0; i < 2; i++) {
-				var values = self.getValuesForDataType(self.mMeterTypes[i]);
-				self.mMeters[i].setValues(values[:value] != null ? values : null);
-			}
-		}
-		else {
-			self.mMeters[0].setValues( null );
-			self.mMeters[1].setValues( null );
-		}
-
-		/* gauges */
-		for (var i=0; i < 2; i++) {
-			if (self.mGauges[i]) {
-				var values = self.getValuesForDataType(self.mGaugeTypes[i]);
-
-				var displayType = GAUGE_DISPLAY_OFF;
-				if (values[:value] != null) {
-					if (self._burnProtection || sleepMode) {
-						displayType = values[:burnProtection] == DISPLAY_ICON ? GAUGE_DISPLAY_ICON : GAUGE_DISPLAY_OFF;
-					}
-					else {
-						displayType = GAUGE_DISPLAY_ALL;
-					}
-				}
-
-				if (displayType == GAUGE_DISPLAY_ALL && self.mGaugeTypes[i] == DATA_TYPE_NOTIFICATIONS) {
-					displayType = GAUGE_DISPLAY_ICON;
-					if (values[:value] > 0 && values[:valueColor] == null) {
-						values[:valueColor] = $.gTheme.ForeColor;
-					}
-				}
-
-				self.mGauges[i].setValues(values, displayType);
-			}
-		}
-
-		/* time */
-		var show = true;
-		if (self.mSecondsDisplayMode == 2) {
-			if (System.getDeviceSettings().doNotDisturb || sleepMode ) {
-				show = false;
-			}
-			self.mTime.setHideSeconds(!show);
-		}
-
-
-	}
 
 }

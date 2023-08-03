@@ -1,4 +1,11 @@
+import Toybox.Lang;
 
+enum {
+	BRIGHT_PURPLE = 0xff55ff,
+	BRIGHT_RED    = 0xff3333,
+	BRIGHT_YELLOW = 0xffff00 /* Sys 0xFFAA00 */,
+	BRIGHT_ORANGE = 0xff8822 /* Sys 0xFF5500; gold=FFD700 orange=FFA500 darkorange=FF8C00 */
+}
 
 class Theme
 {
@@ -93,7 +100,7 @@ class Theme
 		}
     }
 
-	private function dimColors( colors, factor)	{
+	private function dimColors( colors as Array<Number>, factor)	{
 		for (var i = 0; i < colors.size(); ++i) {
 			var color = colors[i];
 			var r = Math.round( factor * ( (color >> 16) & 0xff) ).toNumber();

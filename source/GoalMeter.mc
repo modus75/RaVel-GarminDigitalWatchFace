@@ -1,3 +1,4 @@
+import Toybox.Lang;
 using Toybox.WatchUi as Ui;
 using Toybox.System as Sys;
 import Toybox.Application;
@@ -12,13 +13,13 @@ using Toybox.Graphics;
 //   calculate fill height.
 // - On draw: if buffers are dirty, redraw them and clear flag; clip appropriate portion of each buffer to screen. Each buffer
 //   contains all segments in appropriate colour, with separators. Maximum of 2 draws to screen on each draw() cycle.
-class GoalMeter extends Ui.Drawable {
+class GoalMeter {
 
 	private var _goalMeterStyle;
 	private var mSide; // :left, :right.
-	private var mStroke; // Stroke width.
+	private var mStroke as Number; // Stroke width.
 	private var mWidth; // Clip width of meter.
-	private var mHeight; // Clip height of meter.
+	private var mHeight as Number; // Clip height of meter.
 	private var mSeparator; // Current stroke width of separator bars.
 	private var mLayoutSeparator; // Stroke with of separator bars specified in layout.
 
@@ -32,8 +33,8 @@ class GoalMeter extends Ui.Drawable {
 	private var mBuffersNeedRedraw = true; // Buffers need to be redrawn on next draw() cycle.
 
 	private var mCurrentValue;
-	private var _values;
-	private var mIsOff = false; // #114 Should entire meter on this side be hidden?
+	private var _currentMax as Numeric?;
+	public var dataValues as DataValues?;
 	private var _iconFont;
 
 	// private enum /* GOAL_METER_STYLES */ {
@@ -44,13 +45,12 @@ class GoalMeter extends Ui.Drawable {
 	// 	FILLED_SEGMENTS_MERGED
 	// }
 
-	function initialize(params) {
-		Drawable.initialize(params);
+	function initialize(side, params as Dictionary) {
 
-		mSide = params[:side];
-		mStroke = params[:stroke];
-		mHeight = params[:height];
-		mLayoutSeparator = params[:separator];
+		self.mSide = side;
+		mStroke = params["stroke"];
+		mHeight = params["height"];
+		mLayoutSeparator = params["separator"];
 
 		// Read meter style setting to determine current separator width.
 		onSettingsChanged();
@@ -58,9 +58,9 @@ class GoalMeter extends Ui.Drawable {
 		mWidth = getWidth();
 	}
 
-	function getWidth() {
+	private function getWidth() {
 		var width;
-		
+
 		var halfScreenWidth;
 		var innerRadius;
 
@@ -68,7 +68,7 @@ class GoalMeter extends Ui.Drawable {
 			width = mStroke;
 		} else {
 			halfScreenWidth = Sys.getDeviceSettings().screenWidth / 2; // DC not available; OK to use screenWidth from settings?
-			innerRadius = halfScreenWidth - mStroke; 
+			innerRadius = halfScreenWidth - mStroke;
 			width = halfScreenWidth - Math.sqrt(Math.pow(innerRadius, 2) - Math.pow(mHeight / 2, 2));
 			width = Math.ceil(width).toNumber(); // Round up to cover partial pixels.
 		}
@@ -76,30 +76,16 @@ class GoalMeter extends Ui.Drawable {
 		return width;
 	}
 
-	function setIconFont(iconFont) {
-		self._iconFont = iconFont;
+	function getHeight() as Number {
+		return self.mHeight;
 	}
 
-	function setValues(values) {
-		self.mIsOff = values == null;
+	function getStroke() as Number {
+		return self.mStroke;
+	}
 
-		if (values != null) {
-			if (self._values == null || values[:max] != self._values[:max]) {
-				self._values = values;
-				mCurrentValue = null;
-
-				mSegments = getSegments();
-				mBuffersNeedRedraw = true;
-			}
-			else {
-				self._values = values;
-			}
-
-			if (self._values[:value] != mCurrentValue) {
-				mCurrentValue = self._values[:value];
-				mFillHeight = getFillHeight(mSegments);
-			}
-		}
+	function setIconFont(iconFont) {
+		self._iconFont = iconFont;
 	}
 
 	function onSettingsChanged() {
@@ -112,16 +98,16 @@ class GoalMeter extends Ui.Drawable {
 
 			// Force recalculation of mSegments in setValues() if mSeparator is about to change.
 			if (mSeparator != mLayoutSeparator) {
-				self._values = null;
+				self._currentMax = null;
 			}
 
 			mSeparator = mLayoutSeparator;
-			
+
 		} else {
 
 			// Force recalculation of mSegments in setValues() if mSeparator is about to change.
 			if (mSeparator != 0) {
-				self._values = null;
+				self._currentMax = null;
 			}
 
 			mSeparator = 0;
@@ -137,11 +123,19 @@ class GoalMeter extends Ui.Drawable {
 	// 3. Unbuffered drawing: no buffer, and no clip support. Want common drawBuffer() function, so draw each segment as
 	//    rectangle, then draw circular background colour mask between both meters. This requires an extra drawable in the layout,
 	//    expensive, so only use this strategy for unbuffered drawing. For buffered, the mask can be drawn into each buffer.
-	function draw(dc) {
+	function onUpdate(dc) {
 
-		// #114 TODO: Any buffers not yet reclaimed if goal meter set to off.
-		if (self._goalMeterStyle == 2 /* HIDDEN */ || mIsOff) {
-			return;
+		if (self._currentMax != self.dataValues.max ) {
+			self._currentMax = self.dataValues.max;
+			mCurrentValue = null;
+
+			mSegments = getSegments();
+			mBuffersNeedRedraw = true;
+		}
+
+		if (self.dataValues.value != mCurrentValue) {
+			mCurrentValue = self.dataValues.value;
+			mFillHeight = getFillHeight(mSegments);
 		}
 
 		var left = (mSide == :left) ? 0 : (dc.getWidth() - mWidth);
@@ -153,7 +147,7 @@ class GoalMeter extends Ui.Drawable {
 			&& (Sys.getDeviceSettings().screenShape == Sys.SCREEN_SHAPE_ROUND)) {
 
 			drawBuffered(dc, left, top);
-		
+
 		} else {
 			// drawUnbuffered(dc, left, top);
 
@@ -167,13 +161,13 @@ class GoalMeter extends Ui.Drawable {
 			}
 		}
 
-		if (self._iconFont != null && self._values[:icon] != null) {
-			dc.setColor( ( (self._values[:valueColor]!=null) ? self._values[:valueColor] : $.gTheme.IconColor ), Graphics.COLOR_TRANSPARENT);
+		if (self._iconFont != null && self.dataValues.icon != null) {
+			dc.setColor( ( (self.dataValues.color!=null) ? self.dataValues.color : $.gTheme.IconColor ), Graphics.COLOR_TRANSPARENT);
 
 			dc.drawText(
 						(mSide == :left) ? mWidth : (dc.getWidth() - mWidth),
 						(dc.getHeight() + mHeight) / 2 + 4,
-						self._iconFont, self._values[:icon], ((mSide == :left) ? Graphics.TEXT_JUSTIFY_LEFT : Graphics.TEXT_JUSTIFY_RIGHT)|Graphics.TEXT_JUSTIFY_VCENTER);
+						self._iconFont, self.dataValues.icon, ((mSide == :left) ? Graphics.TEXT_JUSTIFY_LEFT : Graphics.TEXT_JUSTIFY_RIGHT)|Graphics.TEXT_JUSTIFY_VCENTER);
 
 		}
 	}
@@ -181,7 +175,7 @@ class GoalMeter extends Ui.Drawable {
 	// Redraw buffers if dirty, then draw from buffer to screen: from filled buffer up to fill height, then from empty buffer for
 	// remaining height.
 	(:buffered)
-	function drawBuffered(dc, left, top) {
+	private function drawBuffered(dc, left, top) {
 		var emptyBufferDc;
 		var filledBufferDc;
 
@@ -283,7 +277,7 @@ class GoalMeter extends Ui.Drawable {
 	// dc can be screen or buffer DC, depending on drawing mode.
 	// x and y are co-ordinates of top-left corner of meter.
 	// start/endFillHeight are pixel fill heights including separators, starting from zero at bottom.
-	function drawSegments(dc, x, y, fillColour, segments, startFillHeight, endFillHeight) {
+	function drawSegments(dc as Graphics.Dc, x, y, fillColour, segments as Array, startFillHeight, endFillHeight) {
 		var segmentStart = 0;
 		var segmentEnd;
 
@@ -296,7 +290,7 @@ class GoalMeter extends Ui.Drawable {
 		dc.setColor(fillColour, Graphics.COLOR_TRANSPARENT /* Graphics.COLOR_RED */);
 
 		// Draw rectangles, separator-width apart vertically, starting from bottom.
-		for (var i = 0; i < segments.size(); ++i) {			
+		for (var i = 0; i < segments.size(); ++i) {
 			segmentEnd = segmentStart + segments[i];
 
 			// Full segment is filled.
@@ -313,7 +307,7 @@ class GoalMeter extends Ui.Drawable {
 			} else if (segmentEnd <= endFillHeight) {
 				fillStart = startFillHeight;
 				fillEnd = segmentEnd;
-			
+
 			// Segment is not filled.
 			} else {
 				fillStart = 0;
@@ -339,10 +333,10 @@ class GoalMeter extends Ui.Drawable {
 	function getSegments() {
 		var segmentScale = getSegmentScale(); // Value each whole segment represents.
 
-		var numSegments = self._values[:max] * 1.0 / segmentScale; // Including any partial. Force floating-point division.
+		var numSegments = self.dataValues.max * 1.0 / segmentScale; // Including any partial. Force floating-point division.
 		var numSeparators = Math.ceil(numSegments) - 1;
 
-		var totalSegmentHeight = mHeight - (numSeparators * mSeparator); // Subtract total separator height from full height.		
+		var totalSegmentHeight = mHeight - (numSeparators * mSeparator); // Subtract total separator height from full height.
 		var segmentHeight = totalSegmentHeight * 1.0 / numSegments; // Force floating-point division.
 		//Sys.println("segmentHeight " + segmentHeight);
 
@@ -367,7 +361,7 @@ class GoalMeter extends Ui.Drawable {
 		return segments;
 	}
 
-	function getFillHeight(segments) {
+	function getFillHeight(segments as Array) {
 		var fillHeight;
 
 		var i;
@@ -377,7 +371,7 @@ class GoalMeter extends Ui.Drawable {
 			totalSegmentHeight += segments[i];
 		}
 
-		var remainingFillHeight = Math.floor((mCurrentValue * 1.0 / self._values[:max]) * totalSegmentHeight).toNumber(); // Excluding separators.
+		var remainingFillHeight = Math.floor((mCurrentValue * 1.0 / self.dataValues.max) * totalSegmentHeight).toNumber(); // Excluding separators.
 		fillHeight = remainingFillHeight;
 
 		for (i = 0; i < segments.size(); ++i) {
@@ -409,12 +403,12 @@ class GoalMeter extends Ui.Drawable {
 		do {
 			segmentScale = SEGMENT_SCALES[tryScaleIndex];
 
-			numSegments = self._values[:max] * 1.0 / segmentScale;
+			numSegments = self.dataValues.max * 1.0 / segmentScale;
 			numSeparators = Math.ceil(numSegments);
 			totalSegmentHeight = mHeight - (numSeparators * mSeparator);
 			segmentHeight = Math.floor(totalSegmentHeight / numSegments);
 
-			tryScaleIndex++;	
+			tryScaleIndex++;
 		} while (segmentHeight <= /* MIN_WHOLE_SEGMENT_HEIGHT */ 5);
 
 		//Sys.println("scale " + segmentScale);

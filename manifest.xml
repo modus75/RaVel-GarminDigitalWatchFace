@@ -11,8 +11,6 @@
 				-->
     <iq:products>
       <iq:product id="epix2"/>
-      <iq:product id="fenix6"/>
-      <iq:product id="fenix6pro"/>
       <iq:product id="fenix6s"/>
       <iq:product id="fenix6spro"/>
       <iq:product id="fenix7"/>
@@ -24,6 +22,7 @@
 				-->
     <iq:permissions>
       <iq:uses-permission id="Background"/>
+      <iq:uses-permission id="ComplicationSubscriber"/>
       <iq:uses-permission id="SensorHistory"/>
     </iq:permissions>
     <!--
