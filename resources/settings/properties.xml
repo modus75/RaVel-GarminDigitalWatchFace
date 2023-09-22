@@ -19,8 +19,9 @@
 	<property id="RightGaugeType" type="number">22</property>
 
 	<property id="ShowAlarmIcon" type="boolean">true</property>
-	<property id="ShowDontDisturbIcon" type="boolean">true</property>
 	<property id="ShowNotificationIcon" type="boolean">false</property>
+
+	<property id="UseConnectColors" type="number">1</property>
 
 	<property id="AODPowerSaver" type="number">1</property>
 	<property id="AODOffBeforeSleep" type="number">0</property>

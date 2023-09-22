@@ -23,19 +23,22 @@ class GoalMeter {
 	private var mSeparator; // Current stroke width of separator bars.
 	private var mLayoutSeparator; // Stroke with of separator bars specified in layout.
 
-	private var mSegments; // Array of segment heights, in pixels, excluding separators.
-	private var mFillHeight; // Total height of filled segments, in pixels, including separators.
+	private var mSegments as Array<Number>?; // Array of segment heights, in pixels, excluding separators.
+	private var mFillHeight as Number = 0; // Total height of filled segments, in pixels, including separators.
 
-	(:buffered) private var mFilledBuffer; // Bitmap buffer containing all full segments;
-	(:buffered) private var mEmptyBuffer; // Bitmap buffer containing all empty segments;
+	private var mFilledBuffer; // Bitmap buffer containing all full segments;
+	private var mEmptyBuffer; // Bitmap buffer containing all empty segments;
 
-	private var mBuffersNeedRecreate = true; // Buffers need to be recreated on next draw() cycle.
-	private var mBuffersNeedRedraw = true; // Buffers need to be redrawn on next draw() cycle.
+	private var mBuffersNeedRecreate as Number = 2; // 2=all, 1=only fill - Buffers need to be recreated on next draw() cycle.
+	private var mBuffersNeedRedraw as Number = 2; // 2=all, 1=only fill - Buffers need to be redrawn on next draw() cycle.
 
-	private var mCurrentValue;
+	private var _currentValue as Numeric?;
 	private var _currentMax as Numeric?;
 	public var dataValues as DataValues?;
 	private var _iconFont;
+	private var _iconColor = 0;
+	private var _defaultFullMeterColor = 0;
+	private var _fullMeterColor = 0;
 
 	// private enum /* GOAL_METER_STYLES */ {
 	// 	ALL_SEGMENTS,
@@ -52,26 +55,17 @@ class GoalMeter {
 		mHeight = params["height"];
 		mLayoutSeparator = params["separator"];
 
-		// Read meter style setting to determine current separator width.
-		onSettingsChanged();
-
-		mWidth = getWidth();
+		mWidth = computeWidth();
 	}
 
-	private function getWidth() {
+	private function computeWidth() {
 		var width;
 
-		var halfScreenWidth;
 		var innerRadius;
 
-		if (Sys.getDeviceSettings().screenShape == Sys.SCREEN_SHAPE_RECTANGLE) {
-			width = mStroke;
-		} else {
-			halfScreenWidth = Sys.getDeviceSettings().screenWidth / 2; // DC not available; OK to use screenWidth from settings?
-			innerRadius = halfScreenWidth - mStroke;
-			width = halfScreenWidth - Math.sqrt(Math.pow(innerRadius, 2) - Math.pow(mHeight / 2, 2));
-			width = Math.ceil(width).toNumber(); // Round up to cover partial pixels.
-		}
+		innerRadius = Utils.halfScreenWidth - mStroke;
+		width = Utils.halfScreenWidth - Math.sqrt(Math.pow(innerRadius, 2) - Math.pow(mHeight / 2, 2));
+		width = Math.ceil(width).toNumber(); // Round up to cover partial pixels.
 
 		return width;
 	}
@@ -89,7 +83,14 @@ class GoalMeter {
 	}
 
 	function onSettingsChanged() {
-		mBuffersNeedRecreate = true;
+		self.mBuffersNeedRecreate = 2;
+
+		self._defaultFullMeterColor = $.gTheme.FullMeterColor;
+		self._iconColor = $.gTheme.IconColor;
+		if ( Application.Properties.getValue("UseConnectColors") && self.dataValues != null && DataManager.getDataTypeColor( self.dataValues.dataType ) != null ) {
+			self._defaultFullMeterColor = DataManager.getDataTypeColor( self.dataValues.dataType );
+			self._iconColor = Utils.dimColor( self._defaultFullMeterColor, 0.75);
+		}
 
 		// #18 Only read separator width from layout if multi segment style is selected.
 		// #62 Or if filled segment style is selected.
@@ -125,60 +126,47 @@ class GoalMeter {
 	//    expensive, so only use this strategy for unbuffered drawing. For buffered, the mask can be drawn into each buffer.
 	function onUpdate(dc) {
 
+		if (self.dataValues.max == null) {
+			return;
+		}
+
 		if (self._currentMax != self.dataValues.max ) {
 			self._currentMax = self.dataValues.max;
-			mCurrentValue = null;
+			self._currentValue = null;
 
 			mSegments = getSegments();
-			mBuffersNeedRedraw = true;
+			self.mBuffersNeedRedraw = 2;
 		}
 
-		if (self.dataValues.value != mCurrentValue) {
-			mCurrentValue = self.dataValues.value;
-			mFillHeight = getFillHeight(mSegments);
+		if (self.dataValues.value != self._currentValue) {
+			self._currentValue = self.dataValues.value;
+			mFillHeight = computeFillHeight();
 		}
 
-		var left = (mSide == :left) ? 0 : (dc.getWidth() - mWidth);
-		var top = (dc.getHeight() - mHeight) / 2;
-
-		// #21 Force unbuffered drawing on fr735xt (CIQ 2.x) to reduce memory usage.
-		// Now changed to use buffered drawing only on round watches.
-		if ((Graphics has :BufferedBitmap) && (Graphics.Dc has :setClip)
-			&& (Sys.getDeviceSettings().screenShape == Sys.SCREEN_SHAPE_ROUND)) {
-
-			drawBuffered(dc, left, top);
-
-		} else {
-			// drawUnbuffered(dc, left, top);
-
-			// Filled segments: 0 --> fill height.
-			drawSegments(dc, left, top, $.gTheme.ForeColor, mSegments, 0, mFillHeight);
-
-			// Unfilled segments: fill height --> height.
-			// #62 ALL_SEGMENTS or ALL_SEGMENTS_MERGED.
-			if (self._goalMeterStyle <= 1) {
-				drawSegments(dc, left, top, $.gTheme.EmptyMeterColor, mSegments, mFillHeight, mHeight);
-			}
+		var meterColor = self.dataValues.color != null ? self.dataValues.color : self._defaultFullMeterColor;
+		if (meterColor != self._fullMeterColor) {
+			self._fullMeterColor = meterColor;
+			self.mBuffersNeedRecreate |= 1;
 		}
+
+		var left = (mSide == :left) ? 0 : (Utils.screenWidth - mWidth);
+		var top = (Utils.screenHeight - mHeight) / 2;
+
+		drawBuffered(dc, left, top);
 
 		if (self._iconFont != null && self.dataValues.icon != null) {
-			dc.setColor( ( (self.dataValues.color!=null) ? self.dataValues.color : $.gTheme.IconColor ), Graphics.COLOR_TRANSPARENT);
+			dc.setColor( ( (self.dataValues.color!=null) ? self.dataValues.color : self._iconColor ), Graphics.COLOR_TRANSPARENT);
 
 			dc.drawText(
-						(mSide == :left) ? mWidth : (dc.getWidth() - mWidth),
-						(dc.getHeight() + mHeight) / 2 + 4,
-						self._iconFont, self.dataValues.icon, ((mSide == :left) ? Graphics.TEXT_JUSTIFY_LEFT : Graphics.TEXT_JUSTIFY_RIGHT)|Graphics.TEXT_JUSTIFY_VCENTER);
-
+				(mSide == :left) ? mWidth : (Utils.screenWidth - mWidth),
+				(Utils.screenHeight + mHeight) / 2 + 4,
+				self._iconFont, self.dataValues.icon, ((mSide == :left) ? Graphics.TEXT_JUSTIFY_LEFT : Graphics.TEXT_JUSTIFY_RIGHT)|Graphics.TEXT_JUSTIFY_VCENTER);
 		}
 	}
 
 	// Redraw buffers if dirty, then draw from buffer to screen: from filled buffer up to fill height, then from empty buffer for
 	// remaining height.
-	(:buffered)
 	private function drawBuffered(dc, left, top) {
-		var emptyBufferDc;
-		var filledBufferDc;
-
 		var clipBottom;
 		var clipTop;
 		var clipHeight;
@@ -189,45 +177,44 @@ class GoalMeter {
 
 		// Recreate buffers only if this is the very first draw(), or if optimised colour palette has changed e.g. theme colour
 		// change.
-		if (mBuffersNeedRecreate) {
-			mEmptyBuffer = createSegmentBuffer($.gTheme.EmptyMeterColor);
-			mFilledBuffer = createSegmentBuffer($.gTheme.FullMeterColor);
-			mBuffersNeedRecreate = false;
-			mBuffersNeedRedraw = true; // Ensure newly-created buffers are drawn next.
+		if (self.mBuffersNeedRecreate > 0) {
+			if (self.mBuffersNeedRecreate >= 2) {
+				mEmptyBuffer = createSegmentBuffer($.gTheme.EmptyMeterColor);
+			}
+			mFilledBuffer = createSegmentBuffer( self._fullMeterColor );
+			self.mBuffersNeedRedraw = self.mBuffersNeedRecreate; // Ensure newly-created buffers are drawn next.
+			self.mBuffersNeedRecreate = 0;
 		}
 
 		// Redraw buffers only if maximum value changes.
-		if (mBuffersNeedRedraw) {
-
-			// Clear both buffers with background colour.
-			emptyBufferDc = mEmptyBuffer.getDc();
-			emptyBufferDc.setColor(Graphics.COLOR_TRANSPARENT, $.gTheme.BackgroundColor);
-			emptyBufferDc.clear();
-
-			filledBufferDc = mFilledBuffer.getDc();
-			filledBufferDc.setColor(Graphics.COLOR_TRANSPARENT, $.gTheme.BackgroundColor);
-			filledBufferDc.clear();
-
-			// Draw full fill height for each buffer.
-			drawSegments(emptyBufferDc, 0, 0, $.gTheme.EmptyMeterColor, mSegments, 0, mHeight);
-			// #62 Could avoid drawing filled segments buffer if style is not ALL_SEGMENTS or ALL_SEGMENTS_MERGED.
-			drawSegments(filledBufferDc, 0, 0, $.gTheme.FullMeterColor, mSegments, 0, mHeight);
+		if (self.mBuffersNeedRedraw > 0) {
 
 			// For arc meters, draw circular mask for each buffer.
-			if (Sys.getDeviceSettings().screenShape != Sys.SCREEN_SHAPE_RECTANGLE) {
+			// Beyond right edge of bufferDc : Beyond left edge of bufferDc.
+			x = (mSide == :left) ? halfScreenDcWidth : (mWidth - halfScreenDcWidth - 1);
+			radius = halfScreenDcWidth - mStroke;
 
-				// Beyond right edge of bufferDc : Beyond left edge of bufferDc.
-				x = (mSide == :left) ? halfScreenDcWidth : (mWidth - halfScreenDcWidth - 1);
-				radius = halfScreenDcWidth - mStroke;
+			if (self.mBuffersNeedRedraw >= 2) {
+				var emptyBufferDc = mEmptyBuffer.getDc();
+				emptyBufferDc.setColor(Graphics.COLOR_TRANSPARENT, $.gTheme.BackgroundColor);
+				emptyBufferDc.clear();
+
+				drawSegments(emptyBufferDc, 0, 0, $.gTheme.EmptyMeterColor, mSegments, 0, mHeight);
 
 				emptyBufferDc.setColor($.gTheme.BackgroundColor, Graphics.COLOR_TRANSPARENT);
 				emptyBufferDc.fillCircle(x, (mHeight / 2), radius);
-
-				filledBufferDc.setColor($.gTheme.BackgroundColor, Graphics.COLOR_TRANSPARENT);
-				filledBufferDc.fillCircle(x, (mHeight / 2), radius);
 			}
 
-			mBuffersNeedRedraw = false;
+			var filledBufferDc = mFilledBuffer.getDc();
+			filledBufferDc.setColor(Graphics.COLOR_TRANSPARENT, $.gTheme.BackgroundColor);
+			filledBufferDc.clear();
+
+			drawSegments(filledBufferDc, 0, 0, self._fullMeterColor, mSegments, 0, mHeight);
+
+			filledBufferDc.setColor($.gTheme.BackgroundColor, Graphics.COLOR_TRANSPARENT);
+			filledBufferDc.fillCircle(x, (mHeight / 2), radius);
+
+			self.mBuffersNeedRedraw = 0;
 		}
 
 		// Draw filled segments.
@@ -257,7 +244,6 @@ class GoalMeter {
 	}
 
 	// Use restricted palette, to conserve memory (four buffers per watchface).
-	(:buffered)
 	function createSegmentBuffer(fillColour) {
 		var options = {
 			:width => mWidth,
@@ -330,7 +316,7 @@ class GoalMeter {
 	// Return array of segment heights.
 	// Last segment may be partial segment; if so, ensure its height is at least 1 pixel.
 	// Segment heights rounded to nearest pixel, so neighbouring whole segments may differ in height by a pixel.
-	function getSegments() {
+	function getSegments() as Array<Number> {
 		var segmentScale = getSegmentScale(); // Value each whole segment represents.
 
 		var numSegments = self.dataValues.max * 1.0 / segmentScale; // Including any partial. Force floating-point division.
@@ -361,21 +347,21 @@ class GoalMeter {
 		return segments;
 	}
 
-	function getFillHeight(segments as Array) {
+	function computeFillHeight() as Number{
 		var fillHeight;
 
 		var i;
 
 		var totalSegmentHeight = 0;
-		for (i = 0; i < segments.size(); ++i) {
-			totalSegmentHeight += segments[i];
+		for (i = 0; i < self.mSegments.size(); ++i) {
+			totalSegmentHeight += self.mSegments[i];
 		}
 
-		var remainingFillHeight = Math.floor((mCurrentValue * 1.0 / self.dataValues.max) * totalSegmentHeight).toNumber(); // Excluding separators.
+		var remainingFillHeight = Math.floor((self.dataValues.value * 1.0 / self.dataValues.max) * totalSegmentHeight).toNumber(); // Excluding separators.
 		fillHeight = remainingFillHeight;
 
-		for (i = 0; i < segments.size(); ++i) {
-			remainingFillHeight -= segments[i];
+		for (i = 0; i < self.mSegments.size(); ++i) {
+			remainingFillHeight -= self.mSegments[i];
 			if (remainingFillHeight > 0) {
 				fillHeight += mSeparator; // Fill extends beyond end of this segment, so add separator height.
 			} else {

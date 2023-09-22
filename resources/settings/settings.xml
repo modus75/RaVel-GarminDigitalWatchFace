@@ -34,6 +34,7 @@
 				<listEntry value="1">@Strings.Battery</listEntry>
 				<listEntry value="17">@Strings.Notifications</listEntry>
 				<listEntry value="2">@Strings.Steps</listEntry>
+				<listEntry value="97">Distance</listEntry>
 				<listEntry value="4">@Strings.FloorsClimbed</listEntry>
 				<listEntry value="5">@Strings.ActiveMinutes</listEntry>
 				<listEntry value="18">@Strings.HeartRate</listEntry>
@@ -94,6 +95,7 @@
 				<listEntry value="1">@Strings.Battery</listEntry>
 				<listEntry value="17">@Strings.Notifications</listEntry>
 				<listEntry value="2">@Strings.Steps</listEntry>
+				<listEntry value="97">Distance</listEntry>
 				<listEntry value="4">@Strings.FloorsClimbed</listEntry>
 				<listEntry value="5">@Strings.ActiveMinutes</listEntry>
 				<listEntry value="18">@Strings.HeartRate</listEntry>
@@ -119,6 +121,7 @@
 				<listEntry value="1">@Strings.Battery</listEntry>
 				<listEntry value="17">@Strings.Notifications</listEntry>
 				<listEntry value="2">@Strings.Steps</listEntry>
+				<listEntry value="97">Distance</listEntry>
 				<listEntry value="4">@Strings.FloorsClimbed</listEntry>
 				<listEntry value="5">@Strings.ActiveMinutes</listEntry>
 				<listEntry value="18">@Strings.HeartRate</listEntry>
@@ -177,11 +180,16 @@
 	<setting propertyKey="@Properties.ShowAlarmIcon" title="@Strings.ShowAlarmIconTitle">
 		<settingConfig type="boolean" />
 	</setting>
-	<setting propertyKey="@Properties.ShowDontDisturbIcon" title="@Strings.ShowDontDisturbIconTitle">
-		<settingConfig type="boolean" />
-	</setting>
 	<setting propertyKey="@Properties.ShowNotificationIcon" title="@Strings.ShowNotificationIconTitle">
 		<settingConfig type="boolean" />
+	</setting>
+
+	<setting propertyKey="@Properties.UseConnectColors" title="Use Connect Colors">
+		<settingConfig type="list">
+			<listEntry value="0">None</listEntry>
+			<listEntry value="1">Partial</listEntry>
+			<listEntry value="2">Full</listEntry>
+		</settingConfig>
 	</setting>
 
 	<setting propertyKey="@Properties.AODPowerSaver" title="AOD Power saving">

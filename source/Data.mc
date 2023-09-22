@@ -29,6 +29,7 @@ enum /* DATA_TYPES */ {
 	DATA_TYPE_PULSE_OX = 35,
 	DATA_TYPE_RESPIRATION = 36,
 	/* above match complication ids */
+	DATA_TYPE_DISTANCE = 97,
 	DATA_TYPE_DAY_OF_MONTH = 98,
 	DATA_TYPE_SECONDS = 99,
 	DATA_TYPE_DEBUG1 = 101,
@@ -72,6 +73,9 @@ public function getOrCreateDataValues(type as Number) as DataValues
 			{
 				case DATA_TYPE_STEPS:
 					data = new StepsDataValues();
+					break;
+				case DATA_TYPE_DISTANCE:
+					data = new DynamicDataValues(type, null);
 					break;
 				case DATA_TYPE_FLOORS_CLIMBED:
 					data = info has :floorsClimbed ? new FloorsUpDataValues(type, ICON_FLOORS_UP) : new NullDataValues(type, ICON_FLOORS_UP);
@@ -121,6 +125,9 @@ public function getOrCreateDataValues(type as Number) as DataValues
 				case DATA_TYPE_RESPIRATION:
 					data = (info has :respirationRate and info.respirationRate != null) ? new DynamicDataValues(type, ICON_RESPIRATION) : new NullDataValues(type, ICON_RESPIRATION);
 					break;
+				case DATA_TYPE_RECOVERY_TIME:
+					data = (info has :timeToRecovery and info.timeToRecovery != null) ? new RecoveryTimeDataValues(type) : new NullDataValues(type, null);
+					break;
 				case DATA_TYPE_WEATHER:
 					data = new WeatherDataValues();
 					break;
@@ -132,6 +139,9 @@ public function getOrCreateDataValues(type as Number) as DataValues
 					data = new DynamicDataValues(type, null);
 					data.max = 3600;
 					break;
+				case DATA_TYPE_DEBUG2:
+					data = new SecondsDebugDataValues( type );
+					break;
 				default:
 					data = new DynamicDataValues(type, null);
 			}
@@ -140,8 +150,30 @@ public function getOrCreateDataValues(type as Number) as DataValues
 		return data;
 }
 
+public function getDataTypeColor(dataType as Number) as Number?
+{
+	switch ( dataType ) {
+		case DATA_TYPE_STEPS:
+		case DATA_TYPE_BODY_BATTERY:
+			return Graphics.COLOR_BLUE;
+		case DATA_TYPE_HEART_RATE:
+			return BRIGHT_RED;
+		case DATA_TYPE_RESPIRATION:
+			return 0x33ffff;
+		case DATA_TYPE_FLOORS_CLIMBED:
+			return BRIGHT_PURPLE;
+		case DATA_TYPE_ACTIVE_MINUTES:
+			return Graphics.COLOR_ORANGE;
+		case DATA_TYPE_CALORIES:
+			return 0xadffad;
+		case DATA_TYPE_PULSE_OX:
+			return 0xff516F;
+		default:
+			return null;
+	}
 }
 
+}
 
 class NullDataValues extends DataValues
 {
@@ -286,6 +318,40 @@ class BatteryDataValues extends DataValues
 	}
 }
 
+class RecoveryTimeDataValues extends DataValues
+{
+	public function initialize(type as Number) {
+		DataValues.initialize(type);
+		self.max = 96;
+	}
+
+	public function refresh() as Boolean {
+		var info = ActivityMonitor.getInfo();
+
+		var vValue = info.timeToRecovery;
+		if ( vValue == self.value) {
+			return false;
+		}
+		self.value = vValue;
+		self.text = vValue.toString();
+
+		self.max = 96;
+		if ( vValue > 48 ) {
+			self.color = BRIGHT_RED;
+		}
+		else if ( vValue > 36 ) {
+			self.color = BRIGHT_ORANGE;
+		}
+		else if ( vValue > 24 ) {
+			self.color = BRIGHT_YELLOW;
+		}
+		else {
+			self.color = Graphics.COLOR_GREEN;
+		}
+		return true;
+	}
+
+}
 
 class PulseOxDataValues extends DataValues
 {
@@ -353,12 +419,18 @@ class WeatherDataValues extends DataValues
 			return false;
 		}
 
-		self.value = wCond.precipitationChance;
+		self.value = wCond.precipitationChance != null ? wCond.precipitationChance : 0;
 		var temperature = wCond.temperature;
-		if (self._useStatute) {
-			temperature = 32 + ( temperature * 9 + 2 )/ 5;
+		var vText;
+		if (temperature != null) {
+			if (self._useStatute) {
+				temperature = 32 + ( temperature * 9 + 2 )/ 5;
+			}
+			vText = Lang.format("$1$°", [temperature] );
 		}
-		var vText = Lang.format("$1$°", [temperature] );
+		else {
+			vText = "X";
+		}
 /*
 		self.icon = null;
 		switch (wCond.condition) {
@@ -399,6 +471,38 @@ class WeatherDataValues extends DataValues
 	}
 }
 
+class SecondsDebugDataValues extends DataValues
+{
+	public function initialize(type as Number) {
+		DataValues.initialize(type);
+		self.canForceBurnProtection = true;
+		self.max = 60;
+	}
+
+	public function refresh() as Boolean {
+		var vValue = Time.now().value() % 60;
+
+		if ( vValue == self.value )
+		{
+			return false;
+		}
+
+		self.value = vValue;
+		if ( vValue > 0 )
+		{
+			self.text = vValue.toString();
+			self.burnProtection = DISPLAY_TEXT;
+		}
+		else
+		{
+			self.text = "";
+			self.burnProtection = 0;
+		}
+
+		return true;
+	}
+}
+
 
 class DynamicDataValues extends DataValues
 {
@@ -416,6 +520,10 @@ class DynamicDataValues extends DataValues
 		var activityInfo, now;
 
 		switch (self.dataType) {
+
+			case DATA_TYPE_DISTANCE:
+				vValue = info.distance != null ? (info.distance / 100) : null;
+				break;
 
 			case DATA_TYPE_ACTIVE_MINUTES:
 				vValue = info.activeMinutesWeek.total;
@@ -483,30 +591,10 @@ class DynamicDataValues extends DataValues
 				vValue = info.respirationRate;
 				break;
 
-			case DATA_TYPE_RECOVERY_TIME:
-				if (info has :timeToRecovery) {
-					vText = info.timeToRecovery.toString();
-					vValue = info.timeToRecovery;
-					self.max = 96;
-					if ( info.timeToRecovery > 48 ) {
-						self.color = BRIGHT_RED;
-					}
-					else if ( info.timeToRecovery > 36 ) {
-						self.color = BRIGHT_ORANGE;
-					}
-					else if ( info.timeToRecovery > 24 ) {
-						self.color = BRIGHT_YELLOW;
-					}
-					else {
-						self.color = Graphics.COLOR_GREEN;
-					}
-				}
-				break;
-
 			case DATA_TYPE_DATE:
 				now = Time.Gregorian.info(Time.now(), Time.FORMAT_SHORT);
 				var dow = [
-						"Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat"
+						"Su", "Mo", "Tu", "We", "Th", "Fr", "Sa"
 						][now.day_of_week - 1];
 				//dow = dow.substring(0,2);
 

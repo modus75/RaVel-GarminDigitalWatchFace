@@ -2,23 +2,23 @@
 
 	<jsonData id="ravelOptions">{
 	"time": {
-		"adjustY":-18,
+		"adjustY":-20,
 
-		"secondsX":280,
-		"secondsY":298,
-		"secondsClipHeight":63,
+		"secondsX":274,
+		"secondsY":326,
+		"secondsClipHeight":82,
 
-		"topFieldY":78
+		"topFieldY":88
 	},
 	"gauges":{
 		"stroke":5,
-		"radius":34,
-		"locX":103
+		"radius":38,
+		"locX":104
 	},
 	"meters":{
 		"stroke":8,
-		"height":278,
-		"separator":4,
+		"height":290,
+		"separator":5,
 		"displayIcons":true
 	}
 }</jsonData>

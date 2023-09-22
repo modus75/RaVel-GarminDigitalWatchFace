@@ -1,6 +1,6 @@
 <resources>
 
-	<jsonData id="ravelOptions">{"displayMeterIcons":true,
+	<jsonData id="ravelOptions">{
 	"time": {
 		"adjustY":-13,
 
@@ -8,17 +8,18 @@
 		"secondsY":174,
 		"secondsClipHeight":34,
 
-		"topFieldY":41
+		"topFieldY":43
 	},
 	"gauges":{
 		"stroke":2,
-		"radius":18,
+		"radius":20,
 		"locX":60
 	},
 	"meters":{
-		"stroke":6,
+		"stroke":5,
 		"height":160,
-		"separator":2
+		"separator":2,
+		"displayIcons":true
 	}
 }</jsonData>
 
