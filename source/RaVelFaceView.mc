@@ -40,6 +40,7 @@ class RaVelFaceView extends WatchUi.WatchFace {
 	private var _lastBurnOffsetsChangedMinute = 0;
 
 	private var _sleepTimeTracker as NullSleepTimeTracker or SleepTimeTracker;
+	private var _sleepMode as Boolean = false;
 
 	private var _hiPowerDataValuesToUpdate as Array<DataValues> = new [0];
 	private var _loPowerDataValuesToUpdate as Array<DataValues> = new [0];
@@ -52,8 +53,10 @@ class RaVelFaceView extends WatchUi.WatchFace {
 		WatchFace.initialize();
 		$.gTheme = new Theme();
 
-		if ( System.getDeviceSettings() has :requiresBurnInProtection && System.getDeviceSettings().requiresBurnInProtection) {
+		var deviceSettings = System.getDeviceSettings();
+		if ( deviceSettings has :requiresBurnInProtection && deviceSettings.requiresBurnInProtection) {
 			self._sleepTimeTracker = new SleepTimeTracker();
+			self._sleepMode = deviceSettings.doNotDisturb;
 		}
 		else {
 			self._sleepTimeTracker = new NullSleepTimeTracker();
@@ -70,7 +73,7 @@ class RaVelFaceView extends WatchUi.WatchFace {
 		}
 
 		self._iconsFont = WatchUi.loadResource(Rez.Fonts.IconsFont);
-		self.mTime = new ThickThinTime( ravelOptions["time"], dc );
+		self.mTime = new ThickThinTime( ravelOptions["time"] as Dictionary, dc );
 
 		if (self._burnProtection) {
 			self.mTime.enterBurnProtection();
@@ -120,7 +123,7 @@ class RaVelFaceView extends WatchUi.WatchFace {
 		if (self.mGauges[1] != null) {
 			self.mGauges[1].onSettingsChanged( DataManager.getOrCreateDataValues( Application.Properties.getValue("RightGaugeType") ) );
 		}
-	
+
 		self._secondsDisplayMode = Application.Properties.getValue("SecondsDisplayMode");
 
 		if (mTime != null) {
@@ -194,7 +197,7 @@ class RaVelFaceView extends WatchUi.WatchFace {
 			// update values and check for changes
 			var fieldsChanged = false;
 			for (var i=self._currentDataValuesToUpdate.size()-1; i>=0; i--) {
-				fieldsChanged |= updateDataValues( self._currentDataValuesToUpdate[i] );
+				fieldsChanged |= self._currentDataValuesToUpdate[i].refresh();
 			}
 
 			if ( !fieldsChanged ) {
@@ -212,7 +215,7 @@ class RaVelFaceView extends WatchUi.WatchFace {
 
 		} else {
 			for (var i=self._currentDataValuesToUpdate.size()-1; i>=0; i--) {
-				updateDataValues( self._currentDataValuesToUpdate[i] );
+				self._currentDataValuesToUpdate[i].refresh();
 			}
 		}
 
@@ -231,7 +234,7 @@ class RaVelFaceView extends WatchUi.WatchFace {
 			}
 		}
 
-		var sleepMode = self._sleepTimeTracker.SleepMode;
+		var sleepMode = self._sleepMode;
 
 		/* time update */
 		if (self._secondsDisplayMode == 2) {
@@ -262,7 +265,7 @@ class RaVelFaceView extends WatchUi.WatchFace {
 					gauge.onUpdate(dc, burnProtection);
 				}
 			}
-			
+
 		}
 
 		/* top data above clock*/
@@ -415,6 +418,10 @@ class RaVelFaceView extends WatchUi.WatchFace {
 	function onShow() as Void {
 		//TRACE("onShow");
 		self._sleepTimeTracker.onShow();
+		var deviceSettings = System.getDeviceSettings();
+		if (deviceSettings has :requiresBurnInProtection && deviceSettings.requiresBurnInProtection) {
+			self._sleepMode = deviceSettings.doNotDisturb;
+		}
 		self._lastEffectiveUpdateInThisState = 0;
 		self._skipOnUpdateOptimUntil = Time.now().value() + 2;
 	}
@@ -435,7 +442,7 @@ class RaVelFaceView extends WatchUi.WatchFace {
 				self.mGauges[i].setXYOffset(0,0);
 			}
 		}
-		self.mTime.exitBurnProtection( self._sleepTimeTracker.SleepMode );
+		self.mTime.exitBurnProtection( self._sleepMode );
 	}
 
 	function onEnterSleep() as Void {
@@ -564,10 +571,5 @@ class RaVelFaceView extends WatchUi.WatchFace {
 		}
 		return false;
 	}
-
-	private function updateDataValues(data as DataValues) as Boolean {
-		return data.refresh();
-	}
-
 
 }

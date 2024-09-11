@@ -21,8 +21,8 @@ class RaVelFaceApp extends Application.AppBase {
 		// Background service method. Don't access anything
 	}
 
-	function getInitialView() as Array<Views or InputDelegates>? {
-		
+	//function getInitialView() as Array<Views or InputDelegates>? {
+	function getInitialView() as [Views] or [Views, InputDelegates] {
 		if (System has :ServiceDelegate) {  
 			TRACE("App: registering for background events");   
 			Background.registerForSleepEvent();
@@ -37,7 +37,7 @@ class RaVelFaceApp extends Application.AppBase {
 		}
 		self.View = new RaVelFaceView();
 		var delegate = new RaVelWatchFaceDelegate();
-		return [ self.View, delegate ] as Array<Views or InputDelegates>;
+		return [ self.View, delegate ];
 	}
 
 	function onSettingsChanged() as Void {

@@ -9,16 +9,16 @@ enum {
 
 class Theme
 {
-    public var ForeColor;
-    public var BackgroundColor;
-    public var LowKeyColor;
-    public var WarnColor;
+	public var ForeColor;
+	public var BackgroundColor;
+	public var LowKeyColor;
+	public var WarnColor;
 	public var ErrorColor;
-    public var IconColor;
-    public var EmptyMeterColor;
-    public var FullMeterColor;
-    public var HoursColor;
-    public var MinutesColor;
+	public var IconColor;
+	public var EmptyMeterColor;
+	public var FullMeterColor;
+	public var HoursColor;
+	public var MinutesColor;
 
 	private var _lightFactor = 1.0;
 	private var _lightFactor2 = 1.0;
@@ -34,8 +34,8 @@ class Theme
 		self.onSettingsChanged();
 	}
 
-    function onSettingsChanged()
-    {
+	function onSettingsChanged()
+	{
 		var theme = Application.Properties.getValue("Theme");
 		var colors = [];
 
@@ -52,7 +52,8 @@ class Theme
 				colors = [
 					Graphics.COLOR_BLACK, Graphics.COLOR_WHITE,
 					Graphics.COLOR_DK_GRAY, Graphics.COLOR_ORANGE, Graphics.COLOR_RED, Graphics.COLOR_DK_GRAY,
-					Graphics.COLOR_DK_GRAY, Graphics.COLOR_BLUE
+					Graphics.COLOR_DK_GRAY, Graphics.COLOR_BLUE,
+					Graphics.COLOR_WHITE, Graphics.COLOR_WHITE,
 				];
 				if (System.getDeviceSettings().requiresBurnInProtection){
 					colors[5] = 0x808080;
@@ -90,15 +91,9 @@ class Theme
 		self.EmptyMeterColor = colors[6];
 		self.FullMeterColor = colors[7];
 
-		if (colors.size() > 8) {
-			self.HoursColor = colors[8];
-			self.MinutesColor = colors[9];
-		}
-		else {
-			self.HoursColor = self.ForeColor;
-			self.MinutesColor = self.ForeColor;
-		}
-    }
+		self.HoursColor = colors[8];
+		self.MinutesColor = colors[9];
+	}
 
 	private function dimColors( colors as Array<Number>, factor)	{
 		for (var i = 0; i < colors.size(); ++i) {

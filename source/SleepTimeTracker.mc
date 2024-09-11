@@ -3,8 +3,6 @@ import Toybox.Lang;
 
 class NullSleepTimeTracker {
 
-	public var SleepMode as Boolean = false;
-
 	function onShow() as Void {}
 
 	function onHide() as Void {}
@@ -33,13 +31,11 @@ class SleepTimeTracker {
 	private const WAKE_UP_TIMES = "WakeUpTimes";
 	private const SLEEP_TIMES = "SleepTimes";
 
-	public var SleepMode as Boolean = false;
-
 	private var _loPower as Boolean = false;
 
-	private var _wakeUpTimes as Array<Number>;
+	private var _wakeUpTimes as Array<Number?>;
 	private var _nextWakeUpTime as Number = 0;
-	private var _sleepTimes as Array<Number>;
+	private var _sleepTimes as Array<Number?>;
 	private var _nextSleepTime as Number = 0;
 
 	private var _aodOffBeforeSleep as Number = 0;
@@ -63,12 +59,12 @@ class SleepTimeTracker {
 
 		self._wakeUpTimes = Application.Storage.getValue(WAKE_UP_TIMES);
 		if (self._wakeUpTimes == null) {
-			self._wakeUpTimes = new [7];
+			self._wakeUpTimes = new Array<Number?>[7];
 		}
 
 		self._sleepTimes = Application.Storage.getValue(SLEEP_TIMES);
 		if (self._sleepTimes == null) {
-			self._sleepTimes = new [7];
+			self._sleepTimes = new Array<Number?>[7];
 		}
 
 		self.computeNextWakeUpTime( new Time.Moment(now) );
@@ -118,12 +114,9 @@ class SleepTimeTracker {
 	}
 
 
-	public function onUpdate(now as Number) as Boolean{
-
-		var dnd = System.getDeviceSettings().doNotDisturb;
-		self.SleepMode = dnd;
-
-		if (now - self._nextWakeUpTime >=0 && now - self._nextWakeUpTime <= 5) {
+	public function onUpdate(now as Number) as Boolean
+	{
+		if ( now >= self._nextWakeUpTime && now <= self._nextWakeUpTime + 5 ) {
 			return false;
 		}
 
@@ -133,19 +126,14 @@ class SleepTimeTracker {
 				return false;
 			}
 
-			if ( now + self._aodOffBeforeSleep > self._nextSleepTime && now < self._nextSleepTime ) {
+			if ( now < self._nextSleepTime && now + self._aodOffBeforeSleep > self._nextSleepTime ) {
 				return false;
-			 }
-		}
+			}
 
-
-		if ( self._loPower ) {
-			var secBoundary = now % 60;
-
-			if ( secBoundary >= 2) {
-				/* as of 2023-01
-				 -  in wrist gesture on draw is called on small movements even if the full high power mode is not triggered
-				 - when a message is received there is a bug and draw is called every second until a hi power mode is triggered*/
+			if ( now % 60 >= 2) {
+				// as of 2023-01
+				//  -  in wrist gesture on draw is called on small movements even if the full high power mode is not triggered
+				//  - when a message is received there is a bug and draw is called every second until a hi power mode is triggered
 				self.delayScreenOffTime( now + 1 );
 			}
 
@@ -187,8 +175,8 @@ class SleepTimeTracker {
 		if (time != null)
 		{
 			self._nextWakeUpTime = time;
-				}
-			}
+		}
+	}
 
 	private function computeNextSleepTime(now as Time.Moment) as Void
 	{
@@ -207,7 +195,7 @@ class SleepTimeTracker {
 		if (wakeUpTime != null && wakeUpTime < info.hour * 60 + info.min) {
 			wakeUpTime = schedule[ info.day_of_week % 7 ];
 			day += Time.Gregorian.SECONDS_PER_DAY;
-			}
+		}
 
 		if (wakeUpTime != null) {
 			return day + wakeUpTime * 60;
@@ -219,13 +207,13 @@ class SleepTimeTracker {
 	private function processFlagsChanged(mask as Number, prevFlags as Number) {
 		if (self._freezeMorningAOD) {
 			checkUnfreezeMorningAOD();
-			}
 		}
+	}
 
 	public function unfreezeMorningAOD() as Void
 	{
 		self._freezeMorningAOD = false;
-		}
+	}
 
 	public function unfreezeEveningAOD() as Void
 	{
@@ -260,7 +248,7 @@ class SleepTimeTracker {
 		self._aodOffBeforeSleep =  Application.Properties.getValue("AODOffBeforeSleep");
 
 		var aodPowerSaverLevel = Application.Properties.getValue("AODPowerSaver");
-		
+
 		if (aodPowerSaverLevel == 0) {
 			self._screenOffTimeout = 86400;
 		}
@@ -278,7 +266,6 @@ class SleepTimeTracker {
 		}
 
 		self._nexScreenOffTime = Time.now().value() + self._screenOffTimeout;
-
 	}
 
 }
