@@ -72,8 +72,10 @@ class SleepTimeTracker {
 	}
 
 	function onShow() as Void {
-		self._freezeMorningAODShowEventCount++;
-		self.checkUnfreezeMorningAOD();
+		if (self._freezeMorningAOD) {
+			self._freezeMorningAODShowEventCount++;
+			self.checkUnfreezeMorningAOD();
+		}
 	}
 
 	function onHide() as Void {
@@ -145,7 +147,7 @@ class SleepTimeTracker {
 		return true;
 	}
 
-	private function updateSleepEventSchedule(schedule as Array<Number>, now as Time.Moment) as Boolean
+	private function updateSleepEventSchedule(schedule as Array<Number?>, now as Time.Moment) as Boolean
 	{
 		var nowInfo = Time.Gregorian.info( now, Time.FORMAT_SHORT );
 		var eventTIme = nowInfo.hour * 60 + nowInfo.min;
@@ -187,7 +189,7 @@ class SleepTimeTracker {
 		}
 	}
 
-	private function computeNextSleepEventTime(schedule as Array<Number>, now as Time.Moment) as Number?
+	private function computeNextSleepEventTime(schedule as Array<Number?>, now as Time.Moment) as Number?
 	{
 		var day = Time.today().value();
 		var info = Time.Gregorian.info(now, Time.FORMAT_SHORT);
@@ -203,12 +205,6 @@ class SleepTimeTracker {
 		return 0/*null*/;
 	}
 
-
-	private function processFlagsChanged(mask as Number, prevFlags as Number) {
-		if (self._freezeMorningAOD) {
-			checkUnfreezeMorningAOD();
-		}
-	}
 
 	public function unfreezeMorningAOD() as Void
 	{

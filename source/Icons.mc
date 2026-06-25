@@ -1,4 +1,6 @@
 
+const ICON_BIKE             = "\u0042";
+const ICON_RUN              = "\u0052";
 const ICON_NOTIFICATIONS_FULL="\u270f";
 
 const ICON_SLEEP            = "\ue012";
@@ -32,4 +34,4 @@ const ICON_RESPIRATION      = "\uf247";
 const ICON_NOTIFICATIONS_EMPTY="\uf254";
 const ICON_TRAINING_STATUS  = "\uf261";
 const ICON_TRAINING_READINESS="\uf262";
-const ICON_RUNNING_VO2_MAX  = "\uf26b";
+const ICON_VO2MAX_RUNNING   = "\uf26b";

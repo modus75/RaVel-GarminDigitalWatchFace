@@ -24,13 +24,15 @@ enum /* DATA_TYPES */ {
 	DATA_TYPE_ALTITUDE = 15,
 	DATA_TYPE_NOTIFICATIONS = 17,
 	DATA_TYPE_HEART_RATE = 18,
+	DATA_TYPE_WEEKLY_RUN_DISTANCE = 19,
+	DATA_TYPE_WEEKLY_BIKE_DISTANCE = 20,
 	DATA_TYPE_RECOVERY_TIME = 21,
-	DATA_TYPE_STRESS_LEVEL = 22,
+	DATA_TYPE_STRESS_SCORE = 22,
 	DATA_TYPE_BODY_BATTERY = 23,
+	DATA_TYPE_VO2MAX = 24,
 	DATA_TYPE_PULSE_OX = 35,
 	DATA_TYPE_RESPIRATION = 36,
 	/* above match complication ids */
-	DATA_TYPE_STRESS_SCORE = 96,
 	DATA_TYPE_DISTANCE = 97,
 	DATA_TYPE_DAY_OF_MONTH = 98,
 	DATA_TYPE_SECONDS = 99,
@@ -39,20 +41,21 @@ enum /* DATA_TYPES */ {
 	DATA_TYPE_DEBUG3 = 103,
 }
 
+
 class DataValues
 {
 	var dataType as Number;
 	var complicationType as Complications.Type = Complications.COMPLICATION_TYPE_INVALID;
-
 	var value as Numeric?;
 	var text  as String?;
-
 	var max as Numeric?;
 	var icon as String?;
 	var color as Number?;
 	var burnProtection as Number = 0;
+
 	var canForceBurnProtection as Boolean = false;
 	var fixedIconAndColor as Boolean = true;
+	var backgroundRefreshable as Boolean = false;
 
 	function initialize(dataType as Number)
 	{
@@ -66,9 +69,9 @@ class DataValues
 }
 
 
-module DataManager {
-
-var __allDataValues as Array<DataValues> = new [DATA_TYPE_DEBUG3+1];
+module DataManager
+{
+var __allDataValues as Array<DataValues?> = new [DATA_TYPE_DEBUG3+1];
 
 public function getOrCreateDataValues(type as Number) as DataValues
 {
@@ -85,7 +88,7 @@ public function createDataValues(type as Number) as DataValues
 {
 		var info = ActivityMonitor.getInfo();
 		var data = null;
-		switch (type)
+		switch ( type )
 		{
 			case DATA_TYPE_STEPS:
 				data = new StepsDataValues();
@@ -117,22 +120,22 @@ public function createDataValues(type as Number) as DataValues
 				break;
 			case DATA_TYPE_BODY_BATTERY:
 				if ((Toybox has :SensorHistory) && (Toybox.SensorHistory has :getBodyBatteryHistory)) {
-					data = new DynamicDataValues(type, ICON_BODY_BATTERY);
-					data.max = 100;
+					data = new BodyBatteryDataValues();
 				} else {
 					data = new NullDataValues(type, ICON_BODY_BATTERY);
 				}
 				break;
+			case DATA_TYPE_WEEKLY_RUN_DISTANCE:
+				data = new WeeklyDistanceDataValues( type, ICON_RUN );
+				break;
+			case DATA_TYPE_WEEKLY_BIKE_DISTANCE:
+				data = new WeeklyDistanceDataValues( type, ICON_BIKE );
+				break;
 			case DATA_TYPE_STRESS_SCORE:
 				data = (info has :stressScore) ? new StressScoreDataValues() : new NullDataValues(type, ICON_STRESS_LEVEL );
 				break;
-			case DATA_TYPE_STRESS_LEVEL:
-				if ((Toybox has :SensorHistory) && (Toybox.SensorHistory has :getStressHistory)) {
-					data = new DynamicDataValues(type, ICON_STRESS_LEVEL);
-					data.max = 100;
-				} else {
-					data = new NullDataValues(type, ICON_STRESS_LEVEL);
-				}
+			case DATA_TYPE_VO2MAX:
+				data = new VO2MaxDataValues();
 				break;
 			case DATA_TYPE_PULSE_OX:
 				data =((Toybox has :SensorHistory) && (Toybox.SensorHistory has :getOxygenSaturationHistory)) ? new PulseOxDataValues(type, ICON_PULSE_OX) : new NullDataValues(type, ICON_PULSE_OX);
@@ -144,7 +147,7 @@ public function createDataValues(type as Number) as DataValues
 				data = (info has :respirationRate and info.respirationRate != null) ? new DynamicDataValues(type, ICON_RESPIRATION) : new NullDataValues(type, ICON_RESPIRATION);
 				break;
 			case DATA_TYPE_RECOVERY_TIME:
-				data = (info has :timeToRecovery and info.timeToRecovery != null) ? new RecoveryTimeDataValues(type) : new NullDataValues(type, ICON_TRAINING_READINESS);
+				data = (info has :timeToRecovery and info.timeToRecovery != null) ? new RecoveryTimeDataValues() : new NullDataValues(type, ICON_TRAINING_READINESS);
 				break;
 			case DATA_TYPE_WEATHER:
 				data = new WeatherDataValues();
@@ -166,7 +169,7 @@ public function createDataValues(type as Number) as DataValues
 		return data;
 }
 
-public function getDataTypeColor(dataType as Number) as Number?
+public function getDataTypeColor(dataType as Number) as Graphics.ColorType?
 {
 	switch ( dataType ) {
 		case DATA_TYPE_STEPS:
@@ -203,13 +206,15 @@ class NullDataValues extends DataValues
 
 class StepsDataValues extends DataValues
 {
-	public function initialize() {
-		DataValues.initialize(DATA_TYPE_STEPS);
+	public function initialize()
+	{
+		DataValues.initialize( DATA_TYPE_STEPS );
 		self.icon = ICON_STEPS;
 		self.max = ActivityMonitor.getInfo().stepGoal;
 	}
 
-	public function refresh() as Boolean {
+	public function refresh() as Boolean
+	{
 		var info = ActivityMonitor.getInfo();
 		var val = info.steps;
 		if (val != self.value) {
@@ -225,8 +230,9 @@ class StepsDataValues extends DataValues
 
 class FloorsUpDataValues extends DataValues
 {
-	public function initialize(dataType as Number, icon as String) {
-		DataValues.initialize(dataType);
+	public function initialize(dataType as Number, icon as String)
+	{
+		DataValues.initialize( dataType );
 		self.icon = icon;
 		self.max = ActivityMonitor.getInfo().floorsClimbedGoal;
 	}
@@ -247,8 +253,9 @@ class FloorsUpDataValues extends DataValues
 
 class ActiveMinutesWeekValues extends DataValues
 {
-	public function initialize() {
-		DataValues.initialize(DATA_TYPE_ACTIVE_MINUTES);
+	public function initialize()
+	{
+		DataValues.initialize( DATA_TYPE_ACTIVE_MINUTES );
 		self.icon = ICON_ACTIVE_MINUTES;
 		self.max =  ActivityMonitor.getInfo().activeMinutesWeekGoal;
 	}
@@ -269,19 +276,21 @@ class ActiveMinutesWeekValues extends DataValues
 
 class NotificationsDataValues extends DataValues
 {
-	public function initialize() {
-		DataValues.initialize(DATA_TYPE_NOTIFICATIONS);
+	public function initialize()
+	{
+		DataValues.initialize( DATA_TYPE_NOTIFICATIONS );
 		self.canForceBurnProtection = true;
 		self.fixedIconAndColor = false;
 	}
 
-	public function refresh() as Boolean {
+	public function refresh() as Boolean
+	{
 		var settings = System.getDeviceSettings();
 
 		var vValue = settings.notificationCount, vText = null, vColor = null;
 
-		if (settings.phoneConnected) {
-			if (vValue == 0) {
+		if ( settings.phoneConnected ) {
+			if ( vValue == 0 ) {
 				vColor = $.gTheme.LowKeyColor;
 				self.icon = ICON_NOTIFICATIONS_EMPTY;
 				self.burnProtection = 0;
@@ -314,18 +323,22 @@ class NotificationsDataValues extends DataValues
 
 class BatteryDataValues extends DataValues
 {
-	public function initialize() {
+	public function initialize()
+	{
 		DataValues.initialize(DATA_TYPE_BATTERY);
 		self.max = 100;
 		self.canForceBurnProtection = true;
 		self.fixedIconAndColor = false;
+		self.backgroundRefreshable = true;
 	}
 
-	public function refresh() as Boolean {
-		var batteryLevel = System.getSystemStats().battery;
+	public function refresh() as Boolean
+	{
+		var systemStats = System.getSystemStats();
+		var batteryLevel = systemStats.battery;
 
 		var vValue = Math.round(batteryLevel).toNumber();
-		if ( vValue == self.value) {
+		if ( vValue == self.value ) {
 			return false;
 		}
 		self.value = vValue;
@@ -333,19 +346,19 @@ class BatteryDataValues extends DataValues
 		self.color = null;
 		self.burnProtection = 0;
 
-		if (batteryLevel > 85) {
+		if ( batteryLevel > 85 ) {
 			self.icon = ICON_BATTERY_FULL;
 		}
-		else if (batteryLevel > 65) {
+		else if ( batteryLevel > 65 ) {
 			self.icon = ICON_BATTERY_3QUARTERS;
 		}
-		else if (batteryLevel > 35) {
+		else if ( batteryLevel > 35 ) {
 			self.icon = ICON_BATTERY_HALF;
 		}
 		else {
 			self.icon = batteryLevel > 15 ? ICON_BATTERY_QUARTER : ICON_BATTERY_EMPTY;
 
-			var batteryInDays = System.getSystemStats().batteryInDays;
+			var batteryInDays = systemStats.batteryInDays;
 			if (batteryLevel < 10 || batteryInDays < 1) {
 				self.color = $.gTheme.ErrorColor;
 				self.burnProtection = DISPLAY_ICON | DISPLAY_TEXT;
@@ -363,7 +376,7 @@ class BatteryDataValues extends DataValues
 class HeartRateValues extends DataValues
 {
 	public function initialize() {
-		DataValues.initialize(DATA_TYPE_HEART_RATE);
+		DataValues.initialize( DATA_TYPE_HEART_RATE );
 		self.icon = ICON_HEART_EMPTY;
 		self.text = "-";
 	}
@@ -371,7 +384,7 @@ class HeartRateValues extends DataValues
 	public function refresh() as Boolean {
 		var activityInfo = Activity.getActivityInfo();
 		var vValue = null;
-		if (activityInfo.currentHeartRate != null) {
+		if ( activityInfo.currentHeartRate != null ) {
 			vValue = activityInfo.currentHeartRate;
 		}
 		else {
@@ -399,14 +412,17 @@ class HeartRateValues extends DataValues
 
 class RecoveryTimeDataValues extends DataValues
 {
-	public function initialize(type as Number) {
-		DataValues.initialize(type);
+	public function initialize()
+	{
+		DataValues.initialize( DATA_TYPE_RECOVERY_TIME );
 		self.max = 96;
 		self.icon = ICON_TRAINING_READINESS;
 		self.fixedIconAndColor = false;
+		self.backgroundRefreshable = true;
 	}
 
-	public function refresh() as Boolean {
+	public function refresh() as Boolean
+	{
 		var info = ActivityMonitor.getInfo();
 
 		var vValue = info.timeToRecovery;
@@ -434,7 +450,8 @@ class RecoveryTimeDataValues extends DataValues
 
 class StressScoreDataValues extends DataValues
 {
-	public function initialize() {
+	public function initialize()
+	{
 		DataValues.initialize(DATA_TYPE_STRESS_SCORE);
 		self.complicationType = Complications.COMPLICATION_TYPE_STRESS;
 		self.icon = ICON_STRESS_LEVEL;
@@ -442,7 +459,8 @@ class StressScoreDataValues extends DataValues
 		self.fixedIconAndColor = false;
 	}
 
-	public function refresh() as Boolean {
+	public function refresh() as Boolean
+	{
 		var vValue = ActivityMonitor.getInfo().stressScore;
 
 		if ( vValue == null) {
@@ -454,7 +472,8 @@ class StressScoreDataValues extends DataValues
 				else {
 					vValue = 0;
 				}
-			} else {
+			}
+			else {
 				if (self.color != BRIGHT_RED) {
 					self.color = BRIGHT_RED;
 					return true;
@@ -485,14 +504,16 @@ class StressScoreDataValues extends DataValues
 
 class PulseOxDataValues extends DataValues
 {
-	public function initialize(type as Number, icon as String) {
+	public function initialize(type as Number, icon as String)
+	{
 		DataValues.initialize(type);
 		self.icon = icon;
 		self.max = 100;
 		self.fixedIconAndColor = false;
 	}
 
-	public function refresh() as Boolean {
+	public function refresh() as Boolean
+	{
 		var activityInfo = Activity.getActivityInfo();
 		var vValue = null;
 		if (activityInfo.currentOxygenSaturation != null) {
@@ -531,21 +552,116 @@ class PulseOxDataValues extends DataValues
 	}
 }
 
+
+class BodyBatteryDataValues extends DataValues
+{
+	public function initialize()
+	{
+		DataValues.initialize( DATA_TYPE_BODY_BATTERY );
+		self.max = 100;
+		self.icon = ICON_BODY_BATTERY;
+		self.fixedIconAndColor = true;
+		self.backgroundRefreshable = true;
+	}
+
+	public function refresh() as Boolean
+	{
+		var sample = Toybox.SensorHistory.getBodyBatteryHistory({"period"=>1,"order"=>SensorHistory.ORDER_NEWEST_FIRST}).next();
+
+		var vValue = null;
+		if ( sample != null ) {
+			vValue = sample.data.toNumber();
+		}
+
+		if ( vValue == self.value) {
+			return false;
+		}
+
+		self.value = vValue;
+		self.text = vValue.toString();
+		return true;
+	}
+}
+
+class WeeklyDistanceDataValues extends DataValues
+{
+	private var _complicationId as Complications.Id;
+
+	public function initialize( dataType as Number, icon as String )
+	{
+		DataValues.initialize( dataType );
+		self.icon = icon;
+		self._complicationId = new Complications.Id( dataType as Complications.Type );
+		self.backgroundRefreshable = true;
+		self.fixedIconAndColor = false;
+	}
+
+	public function refresh() as Boolean
+	{
+		var complication = Complications.getComplication( self._complicationId );
+		var val = complication.value;
+		if ( val != self.value ) {
+			self.value = val;
+			if ( val != null ) {
+				if ( val > 0 ) {
+					self.text = (val/1000.0).format("%.1f");
+				} else {
+					self.text = "0";
+				}
+			}
+			else {
+				self.text = "?";
+			}
+			return true;
+		}
+		return false;
+	}
+}
+
+class VO2MaxDataValues extends DataValues
+{
+	private const _complicationId as Complications.Id = new Complications.Id( Complications.COMPLICATION_TYPE_VO2MAX_RUN );
+
+	public function initialize()
+	{
+		DataValues.initialize( DATA_TYPE_VO2MAX );
+		self.icon = ICON_VO2MAX_RUNNING;
+		self.backgroundRefreshable = true;
+		self.fixedIconAndColor = false;
+	}
+
+	public function refresh() as Boolean
+	{
+		var complication = Complications.getComplication( self._complicationId );
+		var val = complication.value;
+		if ( val != self.value ) {
+			self.value = val;
+			self.text = val != null ? val.toString() : "-";
+			return true;
+		}
+		return false;
+	}
+}
+
 class WeatherDataValues extends DataValues
 {
 	private var _useStatute as Boolean = false;
 
-	public function initialize() {
-		DataValues.initialize(DATA_TYPE_WEATHER);
+	public function initialize()
+	{
+		DataValues.initialize( DATA_TYPE_WEATHER );
+		self.backgroundRefreshable = true;
+		self.fixedIconAndColor = false;
+
 		self.value = 0;
 		self.max = 100;
 		if ( System.getDeviceSettings().temperatureUnits == System.UNIT_STATUTE ) {
 			self._useStatute = true;
 		}
-		self.fixedIconAndColor = false;
 	}
 
-	public function refresh() as Boolean {
+	public function refresh() as Boolean
+	{
 		var wCond= Weather.getCurrentConditions();
 		if ( wCond == null ) {
 			return false;
@@ -606,6 +722,8 @@ class WeatherDataValues extends DataValues
 
 class SecondsDebugDataValues extends DataValues
 {
+	private var _lastHiRefreshTime = 0;
+
 	public function initialize(type as Number) {
 		DataValues.initialize(type);
 		self.canForceBurnProtection = true;
@@ -613,18 +731,27 @@ class SecondsDebugDataValues extends DataValues
 	}
 
 	public function refresh() as Boolean {
-		var vValue = Time.now().value() % 60;
+		var now = Time.now().value();
+		var vValue = now % 60;
 
 		if ( vValue == self.value )
 		{
 			return false;
 		}
 
+		if ( !$.gBurnProtection.Active ) {
+			self._lastHiRefreshTime = now;
+		}
+
 		self.value = vValue;
 		if ( vValue > 0 )
 		{
 			self.text = vValue.toString();
-			self.burnProtection = DISPLAY_TEXT;
+			if ( now - self._lastHiRefreshTime > 1 ) {
+				self.burnProtection = DISPLAY_TEXT;
+			} else {
+				self.burnProtection = 0;
+			}
 		}
 		else
 		{
@@ -656,33 +783,6 @@ class DynamicDataValues extends DataValues
 			case DATA_TYPE_DISTANCE:
 				info = ActivityMonitor.getInfo();
 				vValue = info.distance != null ? (info.distance / 100) : null;
-				break;
-
-			case DATA_TYPE_BODY_BATTERY:
-				{
-					var sample = Toybox.SensorHistory.getBodyBatteryHistory({"period"=>1,"order"=>SensorHistory.ORDER_NEWEST_FIRST}).next();
-					if (sample != null) {
-						vValue = sample.data.toNumber();
-					}
-				}
-				break;
-
-			case DATA_TYPE_STRESS_LEVEL:
-				{
-					var sample = Toybox.SensorHistory.getStressHistory({"period"=>1,"order"=>SensorHistory.ORDER_NEWEST_FIRST}).next();
-					if (sample != null) {
-						vValue = sample.data.toNumber();
-						if ( vValue <= 25 ) {
-							self.color = Graphics.COLOR_BLUE;
-						}
-						else if ( vValue <= 75 ) {
-							self.color = 0xffb154 /*orange*/;
-						}
-						else {
-							self.color = 0xff7716 /* dark orange*/;
-						}
-					}
-				}
 				break;
 
 			case DATA_TYPE_ALTITUDE:

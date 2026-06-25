@@ -12,6 +12,13 @@ using Toybox.Sensor;
 
 var gTheme as Theme?;
 
+class BurnProtection
+{
+	var Active as Boolean = false;
+}
+
+var gBurnProtection as BurnProtection?;
+
 
 enum {
 	DISPLAY_TEXT 	= 1,
@@ -35,7 +42,6 @@ class RaVelFaceView extends WatchUi.WatchFace {
 	private var _showAlarmIcon as Boolean = false;
 	private var _notificationIconDataValues as DataValues?;
 
-	private var _burnProtection as Boolean = false;
 	private var _lastBurnOffsets as Array<Number> = [0,0];
 	private var _lastBurnOffsetsChangedMinute = 0;
 
@@ -52,6 +58,7 @@ class RaVelFaceView extends WatchUi.WatchFace {
 	function initialize() {
 		WatchFace.initialize();
 		$.gTheme = new Theme();
+		$.gBurnProtection = new BurnProtection();
 
 		var deviceSettings = System.getDeviceSettings();
 		if ( deviceSettings has :requiresBurnInProtection && deviceSettings.requiresBurnInProtection) {
@@ -75,7 +82,7 @@ class RaVelFaceView extends WatchUi.WatchFace {
 		self._iconsFont = WatchUi.loadResource(Rez.Fonts.IconsFont);
 		self.mTime = new ThickThinTime( ravelOptions["time"] as Dictionary, dc );
 
-		if (self._burnProtection) {
+		if ( $.gBurnProtection.Active ) {
 			self.mTime.enterBurnProtection();
 		}
 
@@ -191,7 +198,7 @@ class RaVelFaceView extends WatchUi.WatchFace {
 			return;
 		}
 
-		var burnProtection = self._burnProtection;
+		var burnProtection = $.gBurnProtection.Active;
 
 		if ( now > self._skipOnUpdateOptimUntil) {
 			// update values and check for changes
@@ -435,7 +442,7 @@ class RaVelFaceView extends WatchUi.WatchFace {
 		//TRACE("onExitSleep");
 		self._sleepTimeTracker.onExitSleep();
 		self._lastEffectiveUpdateInThisState = 0;
-		self._burnProtection = false;
+		$.gBurnProtection.Active = false;
 		self._currentDataValuesToUpdate = self._hiPowerDataValuesToUpdate;
 		for (var i=0; i < 2; i++) {
 			if (self.mGauges[i] != null) {
@@ -451,7 +458,7 @@ class RaVelFaceView extends WatchUi.WatchFace {
 		self._lastEffectiveUpdateInThisState = 0;
 		self._skipOnUpdateOptimUntil = 0;
 		if (System.getDeviceSettings().requiresBurnInProtection) {
-			self._burnProtection = true;
+			$.gBurnProtection.Active = true;
 			self._lastBurnOffsetsChangedMinute = System.getClockTime().min;
 			self._lastBurnOffsets = [0,0];
 			self._currentDataValuesToUpdate = self._loPowerDataValuesToUpdate;
